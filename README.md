@@ -4,7 +4,7 @@ Welcome to the Neural Intelligence Lab! This is a web-based, interactive knowled
 
 It achieves this by employing a modern Retrieval-Augmented Generation (RAG) pipeline, which allows it to answer questions based on a curated knowledge base and then guide the user toward new, interesting concepts, **transforming complex information overload into structured, verifiable insights.**
 
-Live Application URL: [https://neuro-ai-explorer-pmyhumw8fev2ajhuf2pacl.streamlit.app/#sources-with-highlighting](https://neuro-ai-explorer-pmyhumw8fev2ajhuf2pacl.streamlit.app/#sources-with-highlighting)
+Live Application URL: ([https://neural-intel-lab.streamlit.app/])
 
 ## Features
 
