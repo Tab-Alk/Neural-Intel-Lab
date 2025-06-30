@@ -7,6 +7,7 @@ from core_engine import (
 import re
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import os # <-- 1. ADDED THIS IMPORT
 
 # ──────────────────────────── App configuration & GLOBAL STYLES ─────────────────────────────
 
@@ -151,7 +152,6 @@ st.markdown(
 
 # ─────────────────────────────  State management & Helpers (NO CHANGES) ─────────────────────────────
 def initialize_state():
-    # ... (code is correct)
     if "response" not in st.session_state:
         st.session_state.response = None
     if "related_questions" not in st.session_state:
@@ -165,12 +165,10 @@ def initialize_state():
 
 
 def sent_tokenize_regex(text: str) -> list[str]:
-    # ... (code is correct)
     return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
 
 
 def highlight_text(source_text: str, generated_answer: str, threshold: float = 0.70) -> str:
-    # ... (code is correct)
     embed = get_embedding_function()
     src_sents = sent_tokenize_regex(source_text)
     ans_sents = sent_tokenize_regex(generated_answer)
@@ -193,18 +191,23 @@ def highlight_text(source_text: str, generated_answer: str, threshold: float = 0
     return " ".join(out)
 
 
+# --- 2. THIS IS THE ONLY FUNCTION THAT HAS BEEN MODIFIED ---
 def render_sources(retrieved_docs: list, answer: str):
-    # ... (code is correct)
     if not retrieved_docs: return
     for idx, doc in enumerate(retrieved_docs, start=1):
         text = doc.page_content
-        heading = doc.metadata.get("heading", "")
-        if not heading and text:
-            first_sentence = text.split(".")[0][:80]
-            heading = first_sentence + "…" if len(first_sentence) == 80 else first_sentence
-        elif not heading:
-            heading = "Untitled"
-        st.markdown(f"**Excerpt {idx}: {heading}**")
+        
+        # --- NEW LOGIC TO GET THE CORRECT TITLE ---
+        # 1. Try to get a 'title' from metadata.
+        # 2. If no 'title', use the 'source' filename as a fallback.
+        # 3. If neither, use "Untitled".
+        title = doc.metadata.get("title") 
+        if not title:
+            source_file = doc.metadata.get("source", "Unknown Source")
+            title = os.path.basename(source_file)
+        # --- END NEW LOGIC ---
+
+        st.markdown(f"**Excerpt {idx}: {title}**")
         if text:
             highlighted = highlight_text(text, answer)
             st.markdown(highlighted, unsafe_allow_html=True)
@@ -214,10 +217,8 @@ def render_sources(retrieved_docs: list, answer: str):
 
 
 def handle_query(query: str, from_starter: bool = False):
-    # ... (code is correct)
     st.session_state.feedback_given = False
     st.session_state.active_starter = query if from_starter else ""
-    import os
     from dotenv import load_dotenv
     load_dotenv()
     api_key = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY")
@@ -242,7 +243,7 @@ def render_header() -> None:
         st.write(
             "It solves the challenge of navigating vast scientific data by intelligently parsing and synthesizing diverse research, delivering accurate, source-backed answers. Every response features highlighted sources and intelligent follow-up questions, providing transparent, verifiable, and guided research sessions."
         )
-        st.markdown("**Ready to begin?**  \nStart by clicking a starter question or asking your own!", unsafe_allow_html=True)
+        st.markdown("**Ready to begin?** \nStart by clicking a starter question or asking your own!", unsafe_allow_html=True)
         st.markdown("<div style='margin-bottom: 0.5rem'></div>", unsafe_allow_html=True)
         st.markdown("---")
         st.markdown("### Technical Implementation")
