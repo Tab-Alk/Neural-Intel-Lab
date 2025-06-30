@@ -1,6 +1,4 @@
-# Python virtual environment
-.venv/
-venv/
+
 
 # Caches
 __pycache__/
@@ -12,3 +10,8 @@ db/
 .vscode/
 .DS_Store
 .env
+
+# Python virtual environments
+.venv/
+venv/
+venv_test/
