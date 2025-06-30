@@ -19,13 +19,15 @@ import os
 import re
 import logging
 from langchain_community.document_loaders import JSONLoader
+from langchain_community.vectorstores import Chroma  # <--- ADD THIS LINE
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document as LangchainDocument
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-import torch # Add this import here, with other core imports
+import torch
+
 
 print("DEBUG: core_engine.py - After all core imports (os, re, langchain, etc.).")
 
