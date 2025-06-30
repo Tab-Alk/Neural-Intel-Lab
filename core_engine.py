@@ -1,4 +1,8 @@
 # core_engine.py
+print("DEBUG: core_engine.py - Script started at top of file.") # NEW print - VERY FIRST LINE
+
+
+
 #  (The conditional patch for pysqlite3 at the top remains)
 try:
     __import__('pysqlite3')
@@ -7,10 +11,17 @@ try:
 except ModuleNotFoundError:
     pass
 
+
+print("DEBUG: core_engine.py - After pysqlite3 patch block (whether active or commented).") # NEW print
+
+
 # COMMENT OUT THIS LINE: from llama_parse import LlamaParse
 # from llama_parse import LlamaParse
 
 from langchain_chroma import Chroma
+
+print("DEBUG: core_engine.py - After langchain_chroma import.") # NEW print
+
 
 import os
 import re

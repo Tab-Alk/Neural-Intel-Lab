@@ -1,4 +1,19 @@
 import streamlit as st
+
+print("DEBUG: app.py - Script started at top of file.") # NEW print - VERY FIRST LINE
+st.set_page_config(page_title="Neural Intel Lab", page_icon="🧠", layout="wide")
+print("DEBUG: app.py - After st.set_page_config.") # This should now definitely show up if it gets this far
+
+from core_engine import (
+    query_rag,
+    generate_related_questions,
+    get_vector_db,
+    get_embedding_function
+)
+print("DEBUG: app.py - After core_engine import.") # This should print if core_engine loads
+
+
+
 from core_engine import (
     query_rag,
     generate_related_questions,
