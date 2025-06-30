@@ -1,4 +1,4 @@
-# core_engine.py (Definitive "Golden State" Version)
+# core_engine.py (Final Verified Version)
 
 # Conditional patch for pysqlite3
 try:
@@ -54,11 +54,16 @@ def query_rag(query_text: str, api_key: str):
     context_text = "\n\n".join([doc.page_content for doc in source_docs])
     
     prompt_template_str = """
-    You are an expert AI assistant...
+    You are an expert AI assistant. Your goal is to provide clear, concise, and accurate answers based on the context provided.
+    Compare and contrast the concepts from the provided text, focusing on the user's question.
+    Do not mention that you are answering from a provided context.
+    
     CONTEXT:
     {context}
+    
     QUESTION:
     {question}
+    
     ANSWER:
     """
     prompt = ChatPromptTemplate.from_template(prompt_template_str)
@@ -77,19 +82,41 @@ def query_rag(query_text: str, api_key: str):
 
 def generate_related_questions(query: str, answer: str, api_key: str):
     """
-    Generates relevant follow-up questions...
+    Generates relevant follow-up questions using a more robust and direct prompt.
     """
-    # This function's logic is sound, no changes needed from your version.
+    # This new prompt is more direct to prevent the model from defaulting to conversational fillers.
     prompt_template_str = """
-    You are a helpful AI assistant...
+    You are a Question Generation Bot. Your sole purpose is to generate relevant, insightful follow-up questions based on the provided text. You must not do anything else.
+
+    The user asked the following QUESTION:
+    "{query}"
+
+    They received this ANSWER:
+    "{answer}"
+
+    Based on this information, generate exactly 3 follow-up questions that would allow a user to explore the topic further.
+
+    RULES:
+    1. The questions must be distinct from the original query.
+    2. The questions must encourage deeper investigation into related concepts.
+    3. Your entire response MUST consist ONLY of a numbered list of the questions.
+    4. DO NOT provide any commentary, preamble, or ask for clarification. DO NOT write "Here are some questions:".
+
+    EXAMPLE OUTPUT:
+    1. What are the ethical implications of Hebbian learning in autonomous AI?
+    2. How is synaptic plasticity modeled in modern neural networks?
+    3. Can an AI without Hebbian-style learning ever achieve true generalization?
+
     YOUR GENERATED FOLLOW-UP QUESTIONS (numbered list only):
     """
     prompt = ChatPromptTemplate.from_template(prompt_template_str)
+    
     llm = ChatGroq(temperature=0.7, model_name="llama3-8b-8192", api_key=api_key)
     
     question_generation_chain = prompt | llm | StrOutputParser()
     response_text = question_generation_chain.invoke({"query": query, "answer": answer})
     
+    # The parsing logic remains the same as it is robust.
     questions = []
     potential_questions = response_text.strip().split('\n')
     for line in potential_questions:
