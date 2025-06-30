@@ -7,3 +7,8 @@ backgroundColor="#FBF8F6"      # Main page background: Very light, warm beige/cr
 secondaryBackgroundColor="#F0EEEB" # Sidebar & default widget backgrounds: Slightly darker, warm light beige/grey
 textColor="#333333"          # Main text color: Dark grey for good readability
 font="sans serif"
+
+[compatibility]
+# Use a Python version known to be compatible with ChromaDB and its dependencies
+# Python 3.11 is a good stable choice for many ML libraries
+pythonVersion = "3.11"
