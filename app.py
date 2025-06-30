@@ -1,12 +1,13 @@
 # app.py
 import streamlit as st
+import os
+
 
 os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
 
 
 import traceback
 import sys
-import os
 # IMPORTANT: Import your core engine functions at the top
 from core_engine import health_check, get_vector_db, query_rag
 
