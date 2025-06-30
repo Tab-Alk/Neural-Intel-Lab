@@ -1,4 +1,4 @@
-# core_engine.py (Final Verified Version)
+# core_engine.py (Final Verified Version with Caching & Telemetry Fixes)
 
 # Conditional patch for pysqlite3
 try:
@@ -10,23 +10,33 @@ except ModuleNotFoundError:
 
 import os
 import re
+import streamlit as st # ADDED: For caching decorator
 from langchain_community.document_loaders import JSONLoader
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from chromadb.config import Settings # ADDED: To configure and disable ChromaDB telemetry
 
 KNOWLEDGE_BASE_DIR = 'knowledge_base'
 DB_DIR = 'db'
 
+# MODIFIED: Added the @st.cache_resource decorator
+@st.cache_resource
 def get_embedding_function():
-    """Gets the embedding function."""
+    """Gets the embedding function and caches it across user sessions."""
+    print("Loading embedding model... (This will only run once per session)")
     return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
+# MODIFIED: Added client_settings to disable telemetry
 def get_vector_db():
-    """Loads or builds the Chroma vector database."""
+    """Loads or builds the Chroma vector database with telemetry disabled."""
+    # ADDED: Define settings to disable telemetry
+    client_settings = Settings(anonymized_telemetry=False)
+    
     embedding_function = get_embedding_function()
+    
     if not os.path.exists(DB_DIR) or not os.listdir(DB_DIR):
         print("Database not found or empty. Building now from .jsonl file...")
         file_path = os.path.join(KNOWLEDGE_BASE_DIR, 'neural_lab_kb.jsonl')
@@ -36,11 +46,13 @@ def get_vector_db():
         loader = JSONLoader(file_path=file_path, jq_schema='.', content_key="text", json_lines=True)
         documents = loader.load()
         
-        db = Chroma.from_documents(documents, embedding_function, persist_directory=DB_DIR)
+        # ADDED: Pass the settings when creating the DB
+        db = Chroma.from_documents(documents, embedding_function, persist_directory=DB_DIR, client_settings=client_settings)
         print("Vector database setup complete.")
     else:
         print("Loading existing vector database.")
-        db = Chroma(persist_directory=DB_DIR, embedding_function=embedding_function)
+        # ADDED: Pass the settings when loading the DB
+        db = Chroma(persist_directory=DB_DIR, embedding_function=embedding_function, client_settings=client_settings)
     return db
 
 def query_rag(query_text: str, api_key: str):
@@ -48,7 +60,7 @@ def query_rag(query_text: str, api_key: str):
     Queries the RAG pipeline using the improved logic.
     """
     vector_db = get_vector_db()
-    retriever = vector_db.as_retriever(search_kwargs={"k": 5}) # Using k=5 as requested
+    retriever = vector_db.as_retriever(search_kwargs={"k": 5})
     
     source_docs = retriever.invoke(query_text)
     context_text = "\n\n".join([doc.page_content for doc in source_docs])
@@ -84,7 +96,6 @@ def generate_related_questions(query: str, answer: str, api_key: str):
     """
     Generates relevant follow-up questions using a more robust and direct prompt.
     """
-    # This new prompt is more direct to prevent the model from defaulting to conversational fillers.
     prompt_template_str = """
     You are a Question Generation Bot. Your sole purpose is to generate relevant, insightful follow-up questions based on the provided text. You must not do anything else.
 
@@ -116,7 +127,6 @@ def generate_related_questions(query: str, answer: str, api_key: str):
     question_generation_chain = prompt | llm | StrOutputParser()
     response_text = question_generation_chain.invoke({"query": query, "answer": answer})
     
-    # The parsing logic remains the same as it is robust.
     questions = []
     potential_questions = response_text.strip().split('\n')
     for line in potential_questions:
