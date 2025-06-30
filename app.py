@@ -7,18 +7,14 @@ from core_engine import (
 import re
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-import os # Added for os.getenv and load_dotenv
-from dotenv import load_dotenv # Added for load_dotenv
 
 # ──────────────────────────── App configuration & GLOBAL STYLES ─────────────────────────────
 
-print("DEBUG: app.py - Before st.set_page_config") # DEBUG PRINT
 st.set_page_config(
     page_title="The Neural Intelligence Lab",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-print("DEBUG: app.py - After st.set_page_config") # DEBUG PRINT
 
 # --- UNIFIED CSS BLOCK FOR ALL SPACING FIXES ---
 # This single block now controls the layout for the entire app.
@@ -143,7 +139,6 @@ section[data-testid="stSidebar"] {
 
 </style>
 """, unsafe_allow_html=True)
-print("DEBUG: app.py - After CSS markdown") # DEBUG PRINT
 
 
 # Add title and description at the top of the main script
@@ -154,11 +149,9 @@ st.markdown(
     "Get answers that explore both worlds of intelligence."
 )
 
-print("DEBUG: app.py - Before function definitions (rest of code)") # DEBUG PRINT
-
 # ─────────────────────────────  State management & Helpers (NO CHANGES) ─────────────────────────────
 def initialize_state():
-    print("DEBUG: initialize_state() called") # DEBUG PRINT
+    # ... (code is correct)
     if "response" not in st.session_state:
         st.session_state.response = None
     if "related_questions" not in st.session_state:
@@ -169,17 +162,16 @@ def initialize_state():
         st.session_state.feedback_given = False
     if "active_starter" not in st.session_state:
         st.session_state.active_starter = ""
-    print("DEBUG: initialize_state() finished") # DEBUG PRINT
 
 
 def sent_tokenize_regex(text: str) -> list[str]:
+    # ... (code is correct)
     return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
 
 
 def highlight_text(source_text: str, generated_answer: str, threshold: float = 0.70) -> str:
-    print("DEBUG: highlight_text() called") # DEBUG PRINT
+    # ... (code is correct)
     embed = get_embedding_function()
-    print("DEBUG: highlight_text() - After get_embedding_function()") # DEBUG PRINT
     src_sents = sent_tokenize_regex(source_text)
     ans_sents = sent_tokenize_regex(generated_answer)
     if not src_sents or not ans_sents:
@@ -198,12 +190,11 @@ def highlight_text(source_text: str, generated_answer: str, threshold: float = 0
             out.append(f"<mark style='background:yellow'>{s}</mark>")
         else:
             out.append(s)
-    print("DEBUG: highlight_text() finished") # DEBUG PRINT
     return " ".join(out)
 
 
 def render_sources(retrieved_docs: list, answer: str):
-    print("DEBUG: render_sources() called") # DEBUG PRINT
+    # ... (code is correct)
     if not retrieved_docs: return
     for idx, doc in enumerate(retrieved_docs, start=1):
         text = doc.page_content
@@ -220,33 +211,29 @@ def render_sources(retrieved_docs: list, answer: str):
         else:
             st.markdown("*No content available*")
         if idx < len(retrieved_docs): st.markdown("---")
-    print("DEBUG: render_sources() finished") # DEBUG PRINT
 
 
 def handle_query(query: str, from_starter: bool = False):
-    print(f"DEBUG: handle_query() called with query: {query}") # DEBUG PRINT
+    # ... (code is correct)
     st.session_state.feedback_given = False
     st.session_state.active_starter = query if from_starter else ""
-    load_dotenv() # Make sure .env is loaded first if needed
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
     api_key = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY")
     if not api_key:
         st.error("API Key is missing. Please set it in your environment or Streamlit secrets.")
-        print("ERROR: API Key is missing!") # DEBUG PRINT
         return
-    print("DEBUG: handle_query() - Before query_rag") # DEBUG PRINT
     with st.spinner("Synthesizing answer…"):
         answer, sources = query_rag(query, api_key=api_key)
         st.session_state.response = {"query": query, "answer": answer, "sources": sources}
-    print("DEBUG: handle_query() - After query_rag") # DEBUG PRINT
     with st.spinner("Generating related questions…"):
         st.session_state.related_questions = generate_related_questions(query, answer, api_key=api_key)
-    print("DEBUG: handle_query() finished") # DEBUG PRINT
 
 # ───────────────────────────────  UI builders (REVISED)  ────────────────────────────────
 
 def render_header() -> None:
     """Layered sidebar introduction."""
-    print("DEBUG: render_header() called") # DEBUG PRINT
     with st.sidebar:
         st.markdown("### What is this App?")
         st.write(
@@ -258,7 +245,7 @@ def render_header() -> None:
         st.write(
             "Every response features highlighted sources and intelligent follow-up questions, providing transparent, verifiable, and guided research sessions."
         )
-        st.markdown("**Ready to begin?** \nStart by clicking a starter question or asking your own!", unsafe_allow_html=True)
+        st.markdown("**Ready to begin?**  \nStart by clicking a starter question or asking your own!", unsafe_allow_html=True)
         st.markdown("<div style='margin-bottom: 0.5rem'></div>", unsafe_allow_html=True)
         st.markdown("---")
         st.markdown("### Technical Implementation")
@@ -281,11 +268,9 @@ def render_header() -> None:
         )
         st.markdown("---")
         st.caption("© 2025 The Neural Intelligence Lab. V2.0")
-    print("DEBUG: render_header() finished") # DEBUG PRINT
 
 
 def render_apple_style_input_area() -> None:
-    print("DEBUG: render_apple_style_input_area() called") # DEBUG PRINT
     STARTER_QUESTIONS = [
         "Why can deep learning excel at pattern recognition yet still struggle with the common‑sense reasoning that comes naturally to humans?",
         "How does the brain consolidate memories during sleep, and how could replay‑style mechanisms inspire more robust continual‑learning in AI?",
@@ -314,12 +299,10 @@ def render_apple_style_input_area() -> None:
         on_change=set_query_from_input, label_visibility="collapsed"
     )
     st.markdown('</div>', unsafe_allow_html=True)
-    print("DEBUG: render_apple_style_input_area() finished") # DEBUG PRINT
 
 
 def render_response_area() -> None:
     """Answer, sources, and feedback block with one‑time feedback buttons."""
-    print("DEBUG: render_response_area() called") # DEBUG PRINT
     st.markdown("---")
     resp = st.session_state.response
 
@@ -382,36 +365,21 @@ def render_response_area() -> None:
             st.markdown('<div class="feedback-btn">', unsafe_allow_html=True)
             st.button("No", key="feedback_no", on_click=set_feedback, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
-    print("DEBUG: render_response_area() finished") # DEBUG PRINT
 
 
 # ────────────────────────────────  Main flow (REVISED) ────────────────────────────────
-
-print("DEBUG: app.py - Before initialize_state()") # DEBUG PRINT
 initialize_state()
-print("DEBUG: app.py - After initialize_state()") # DEBUG PRINT
-
-print("DEBUG: app.py - Before render_header()") # DEBUG PRINT
 render_header()
-print("DEBUG: app.py - After render_header()") # DEBUG PRINT
-
-print("DEBUG: app.py - Before render_apple_style_input_area()") # DEBUG PRINT
 render_apple_style_input_area()
-print("DEBUG: app.py - After render_apple_style_input_area()") # DEBUG PRINT
-
 
 # This is the key fix for vertical alignment. This spacer div grows to fill
 # all available space, pushing the content above it to the top.
 if not st.session_state.response:
     st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
 
-print("DEBUG: app.py - Before user_query check") # DEBUG PRINT
 if st.session_state.user_query and st.session_state.user_query != st.session_state.active_starter:
     handle_query(st.session_state.user_query, from_starter=False)
     st.session_state.user_query = ""
-print("DEBUG: app.py - After user_query check") # DEBUG PRINT
 
-print("DEBUG: app.py - Before response render check") # DEBUG PRINT
 if st.session_state.response:
     render_response_area()
-print("DEBUG: app.py - End of app.py script") # DEBUG PRINT
