@@ -47,6 +47,7 @@ def main():
         st.error(f"❌ Application error: {e}")
         st.code(traceback.format_exc())
 
+
 def render_main_app():
     """Render the main application interface"""
     st.title("🧠 Neuro AI Explorer")
@@ -88,6 +89,12 @@ def render_main_app():
                     with st.expander("📚 Sources", expanded=False):
                         for i, doc in enumerate(sources):
                             st.markdown(f"**Source {i+1}:**")
+                            st.markdown(f"- Title: {doc.metadata}")
+            except Exception as e:
+                st.error(f"❌ Error while searching: {e}")
+                st.code(traceback.format_exc())
+
+
 def render_diagnostic_info(health_status):
     """Render detailed diagnostic information"""
     st.markdown("### 🔍 Diagnostic Information")
@@ -161,6 +168,7 @@ def render_diagnostic_info(health_status):
     except:
         st.write("Could not check package versions")
 
+
 def render_fallback_interface():
     """Render a fallback interface when core_engine fails to import"""
     st.error("❌ Core engine failed to import. Running in fallback mode.")
@@ -183,6 +191,7 @@ def render_fallback_interface():
         st.write(f"📁 Knowledge base files: {kb_files}")
     else:
         st.write("❌ Knowledge base directory missing")
+
 
 if __name__ == "__main__":
     main()
