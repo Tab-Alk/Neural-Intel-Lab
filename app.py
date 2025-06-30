@@ -240,10 +240,7 @@ def render_header() -> None:
             "The Neural Intelligence Lab is a specialized AI-powered research tool designed to accelerate literature reviews and comparative analyses in neuroscience and artificial intelligence."
         )
         st.write(
-            "It solves the challenge of navigating vast scientific data by intelligently parsing and synthesizing diverse research, delivering accurate, source-backed answers."
-        )
-        st.write(
-            "Every response features highlighted sources and intelligent follow-up questions, providing transparent, verifiable, and guided research sessions."
+            "It solves the challenge of navigating vast scientific data by intelligently parsing and synthesizing diverse research, delivering accurate, source-backed answers. Every response features highlighted sources and intelligent follow-up questions, providing transparent, verifiable, and guided research sessions."
         )
         st.markdown("**Ready to begin?**  \nStart by clicking a starter question or asking your own!", unsafe_allow_html=True)
         st.markdown("<div style='margin-bottom: 0.5rem'></div>", unsafe_allow_html=True)
