@@ -88,7 +88,7 @@ def render_main_app():
                     with st.expander("📚 Sources", expanded=False):
                         for i, doc in enumerate(sources):
                             st.markdown(f"**Source {i+1}:**")
-        def render_diagnostic_info(health_status):
+def render_diagnostic_info(health_status):
     """Render detailed diagnostic information"""
     st.markdown("### 🔍 Diagnostic Information")
     
