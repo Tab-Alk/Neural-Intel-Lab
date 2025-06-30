@@ -47,10 +47,9 @@ def main():
         st.error(f"❌ Application error: {e}")
         st.code(traceback.format_exc())
 
-
 def render_main_app():
     """Render the main application interface"""
-    st.title(" Neuro AI Explorer")
+    st.title("🧠 Neuro AI Explorer")
     st.markdown("Explore neuroscience and AI concepts through intelligent Q&A")
     
     # API Key input
@@ -89,20 +88,101 @@ def render_main_app():
                     with st.expander("📚 Sources", expanded=False):
                         for i, doc in enumerate(sources):
                             st.markdown(f"**Source {i+1}:**")
-                            st.markdown(f"- Title: {doc.metadata}")
+        def render_diagnostic_info(health_status):
+    """Render detailed diagnostic information"""
+    st.markdown("### 🔍 Diagnostic Information")
+    
+    # Check current working directory
+    st.write(f"**Current working directory:** `{os.getcwd()}`")
+    
+    # Check if knowledge base directory exists
+    kb_dir = "knowledge_base"
+    if os.path.exists(kb_dir):
+        st.write(f"✅ Knowledge base directory found: `{kb_dir}`")
+        kb_files = os.listdir(kb_dir)
+        st.write(f"Files in knowledge base: {kb_files}")
+        
+        # Check JSONL file specifically
+        jsonl_path = os.path.join(kb_dir, 'neural_lab_kb.jsonl')
+        if os.path.exists(jsonl_path):
+            file_size = os.path.getsize(jsonl_path)
+            st.write(f"✅ JSONL file found: `{jsonl_path}` ({file_size} bytes)")
+            
+            # Try to read first few lines
+            try:
+                with open(jsonl_path, 'r') as f:
+                    first_line = f.readline()
+                    st.write(f"First line preview: `{first_line[:100]}...`")
             except Exception as e:
-                st.error(f"❌ Error while searching: {e}")
-                st.code(traceback.format_exc())
-
-# Placeholder functions referenced but not defined in the provided snippet.
-# They are defined here minimally so the script runs without NameError.
-
-def render_diagnostic_info(_):
-    pass
+                st.write(f"❌ Could not read JSONL file: {e}")
+        else:
+            st.write(f"❌ JSONL file not found: `{jsonl_path}`")
+    else:
+        st.write(f"❌ Knowledge base directory not found: `{kb_dir}`")
+    
+    # Check database directory
+    db_dir = "db"
+    if os.path.exists(db_dir):
+        st.write(f"✅ Database directory found: `{db_dir}`")
+        db_files = os.listdir(db_dir)
+        st.write(f"Files in database: {db_files}")
+    else:
+        st.write(f"❌ Database directory not found: `{db_dir}`")
+    
+    # Try to manually create database
+    st.markdown("### 🛠️ Manual Database Creation")
+    if st.button("🔧 Try to Create Database Manually"):
+        try:
+            with st.spinner("Creating database..."):
+                from core_engine import build_database_from_jsonl
+                db = build_database_from_jsonl()
+                st.success("✅ Database created successfully!")
+                st.experimental_rerun()
+        except Exception as e:
+            st.error(f"❌ Failed to create database: {e}")
+            st.code(traceback.format_exc())
+    
+    # Show system information
+    st.markdown("### 💻 System Information")
+    st.write(f"**Python version:** {sys.version}")
+    st.write(f"**Platform:** {sys.platform}")
+    
+    # Show installed packages (relevant ones)
+    try:
+        import pkg_resources
+        relevant_packages = ['langchain', 'chromadb', 'streamlit', 'sentence-transformers']
+        st.write("**Relevant packages:**")
+        for pkg in relevant_packages:
+            try:
+                version = pkg_resources.get_distribution(pkg).version
+                st.write(f"- {pkg}: {version}")
+            except:
+                st.write(f"- {pkg}: Not found")
+    except:
+        st.write("Could not check package versions")
 
 def render_fallback_interface():
-    st.warning("Fallback interface: core engine unavailable.")
-
+    """Render a fallback interface when core_engine fails to import"""
+    st.error("❌ Core engine failed to import. Running in fallback mode.")
+    
+    st.markdown("### 🔍 Basic System Check")
+    st.write(f"**Current directory:** `{os.getcwd()}`")
+    st.write(f"**Directory contents:** {os.listdir('.')}")
+    
+    # Check if required files exist
+    required_files = ['core_engine.py', 'requirements.txt']
+    for file in required_files:
+        if os.path.exists(file):
+            st.write(f"✅ {file} found")
+        else:
+            st.write(f"❌ {file} missing")
+    
+    # Check knowledge base
+    if os.path.exists('knowledge_base'):
+        kb_files = os.listdir('knowledge_base')
+        st.write(f"📁 Knowledge base files: {kb_files}")
+    else:
+        st.write("❌ Knowledge base directory missing")
 
 if __name__ == "__main__":
     main()

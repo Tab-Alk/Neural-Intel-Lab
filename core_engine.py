@@ -2,6 +2,7 @@
 import logging
 import os
 import re
+import traceback
 from typing import List, Tuple, Optional
 
 # Set up logging instead of print statements
@@ -63,12 +64,30 @@ def get_embedding_function():
 
 def check_db_exists() -> bool:
     """Check if ChromaDB files exist"""
-    if not os.path.exists(DB_DIR):
-        return False
-    
     try:
+        if not os.path.exists(DB_DIR):
+            logger.info(f"Database directory {DB_DIR} does not exist")
+            return False
+        
         db_files = os.listdir(DB_DIR)
-        return any(f.endswith(('.parquet', '.sqlite3')) for f in db_files) or 'index' in db_files
+        logger.info(f"Files in {DB_DIR}: {db_files}")
+        
+        # Look for any ChromaDB-related files
+        chroma_indicators = [
+            lambda f: f.endswith('.parquet'),
+            lambda f: f.endswith('.sqlite3'),
+            lambda f: f == 'index',
+            lambda f: f.startswith('chroma'),
+            lambda f: f.endswith('.json')
+        ]
+        
+        has_db_files = any(
+            indicator(f) for f in db_files for indicator in chroma_indicators
+        )
+        
+        logger.info(f"Database files found: {has_db_files}")
+        return has_db_files
+        
     except Exception as e:
         logger.error(f"Error checking database directory: {e}")
         return False
@@ -83,6 +102,7 @@ def build_database_from_jsonl() -> object:
         raise FileNotFoundError(error_msg)
     
     try:
+        logger.info(f"Loading documents from {file_path}")
         loader = deps['JSONLoader'](
             file_path=file_path, 
             jq_schema='.', 
@@ -92,33 +112,76 @@ def build_database_from_jsonl() -> object:
         documents = loader.load()
         logger.info(f"Loaded {len(documents)} documents from JSONL")
         
+        if not documents:
+            raise ValueError("No documents were loaded from the JSONL file")
+        
+        # Test a few documents
+        for i, doc in enumerate(documents[:3]):
+            logger.info(f"Document {i}: {len(doc.page_content)} chars, metadata: {doc.metadata}")
+        
         embedding_function = get_embedding_function()
+        
+        # Ensure the directory exists and is writable
         os.makedirs(DB_DIR, exist_ok=True)
         
+        # Test if we can write to the directory
+        test_file = os.path.join(DB_DIR, 'test_write.txt')
+        try:
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            logger.info(f"Directory {DB_DIR} is writable")
+        except Exception as e:
+            logger.error(f"Cannot write to directory {DB_DIR}: {e}")
+            raise
+        
+        logger.info(f"Creating ChromaDB in {DB_DIR}")
         db = deps['Chroma'].from_documents(
             documents, 
             embedding_function=embedding_function, 
             persist_directory=DB_DIR
         )
         logger.info("Vector database built successfully")
+        
+        # Verify the database was created
+        if check_db_exists():
+            logger.info("Database creation verified")
+        else:
+            logger.warning("Database files not found after creation")
+        
         return db
         
     except Exception as e:
         logger.error(f"Failed to build database: {e}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         raise
 
 def load_existing_database() -> object:
     """Load existing ChromaDB"""
     try:
+        logger.info(f"Attempting to load database from {DB_DIR}")
         embedding_function = get_embedding_function()
+        
+        # Try to load the database
         db = deps['Chroma'](
             persist_directory=DB_DIR, 
             embedding_function=embedding_function
         )
+        
+        # Test the database by trying to get the collection
+        try:
+            collection = db._collection
+            doc_count = collection.count()
+            logger.info(f"Database loaded with {doc_count} documents")
+        except Exception as e:
+            logger.warning(f"Could not verify database contents: {e}")
+        
         logger.info("Existing vector database loaded successfully")
         return db
+        
     except Exception as e:
         logger.error(f"Failed to load existing database: {e}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         raise
 
 def get_vector_db() -> object:
@@ -272,20 +335,35 @@ def health_check() -> dict:
         kb_file = os.path.join(KNOWLEDGE_BASE_DIR, 'neural_lab_kb.jsonl')
         if os.path.exists(kb_file):
             status["knowledge_base"] = True
+            logger.info(f"Knowledge base file found: {kb_file}")
+        else:
+            logger.error(f"Knowledge base file not found: {kb_file}")
         
-        # Check database
-        if check_db_exists():
-            status["database"] = True
-        
-        # Check embeddings
+        # Check embeddings first (needed for database)
         try:
             embedding_function = get_embedding_function()
             if embedding_function:
                 status["embeddings"] = True
-        except:
-            pass
+                logger.info("Embeddings function created successfully")
+        except Exception as e:
+            logger.error(f"Failed to create embeddings function: {e}")
+        
+        # Check database (most complex check)
+        if status["embeddings"] and status["knowledge_base"]:
+            try:
+                # Try to get the vector database
+                db = get_vector_db()
+                if db:
+                    status["database"] = True
+                    logger.info("Database check passed")
+            except Exception as e:
+                logger.error(f"Database check failed: {e}")
+                logger.error(f"Database error traceback: {traceback.format_exc()}")
+        else:
+            logger.info("Skipping database check due to missing prerequisites")
             
     except Exception as e:
         logger.error(f"Health check failed: {e}")
+        logger.error(f"Health check traceback: {traceback.format_exc()}")
     
     return status
