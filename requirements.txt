@@ -11,8 +11,12 @@ langchain-huggingface
 # --- Vector Database & Embeddings ---
 # For "from langchain_chroma import Chroma"
 langchain-chroma
+
 # The underlying vector database
 chromadb
+
+protobuf==3.20.3
+
 # Required for HuggingFaceEmbeddings
 sentence-transformers
 # Required for JSONLoader's jq_schema argument

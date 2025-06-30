@@ -1,5 +1,9 @@
 # app.py
 import streamlit as st
+
+os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
+
+
 import traceback
 import sys
 import os
