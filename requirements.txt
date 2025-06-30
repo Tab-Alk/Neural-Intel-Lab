@@ -1,27 +1,28 @@
-# --- Streamlit Frontend ---
+# requirements.txt
+
+# Core LLM/RAG tools from your original file
+langchain
+langchain-community
+langchain-huggingface
+langchain-groq
+
+# Vector store + Embeddings
+chromadb
+sentence-transformers
+
+# Streamlit frontend
 streamlit
 
-# --- Core LangChain & LLM Connectors ---
-langchain
-langchain-core
-langchain-community
-langchain-groq
-langchain-huggingface
-
-# --- Vector Database & Embeddings ---
-# For "from langchain_chroma import Chroma"
-langchain-chroma
-
-# The underlying vector database
-chromadb
-
-protobuf==3.20.3
-
-# Required for HuggingFaceEmbeddings
-sentence-transformers
-# Required for JSONLoader's jq_schema argument
+# Utility & Logic
+# jq is a dependency for the JSONLoader
 jq
+python-dotenv
+scikit-learn
+numpy
 
-# --- Utilities & Data Science ---
-# For sqlite compatibility on Streamlit Cloud
-pysqlite3-binary; platform_system=="Linux"
+# --- Critical Fixes & Environment ---
+# Patch for running ChromaDB on Streamlit Cloud
+pysqlite3-binary
+
+# Pin protobuf to a stable version to prevent C++ extension errors
+protobuf==3.20.3
