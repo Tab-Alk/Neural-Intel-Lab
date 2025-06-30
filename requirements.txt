@@ -17,11 +17,6 @@ chromadb
 # Required for HuggingFaceEmbeddings
 sentence-transformers
 
-# --- Document Parsing & Ingestion ---
-# The LlamaParse library and its key dependencies
-llama-parse
-llama-index
-pypdf
 
 
 # Explicitly add a recent, compatible version of unstructured
