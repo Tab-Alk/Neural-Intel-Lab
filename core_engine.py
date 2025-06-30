@@ -1,7 +1,8 @@
 # core_engine.py
+
 print("DEBUG: core_engine.py - Script started at top of file.")
 
-# (The conditional patch for pysqlite3 is commented out to troubleshoot early crashes)
+# RE-ENABLE THIS BLOCK FOR STREAMLIT CLOUD
 try:
     __import__('pysqlite3')
     import sys
@@ -12,11 +13,7 @@ except ModuleNotFoundError:
 
 print("DEBUG: core_engine.py - After pysqlite3 patch block (whether active or commented).")
 
-# COMMENTED OUT: from llama_parse import LlamaParse
-# from llama_parse import LlamaParse # This was removed from requirements.txt
 
-from langchain_chroma import Chroma
-print("DEBUG: core_engine.py - After langchain_chroma import.")
 
 import os
 import re

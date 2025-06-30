@@ -1,4 +1,5 @@
-# --- Streamlit Frontend ---
+'''
+--- Streamlit Frontend ---
 streamlit
 
 # --- Core LangChain & LLM Connectors ---
@@ -17,12 +18,10 @@ chromadb
 # Required for HuggingFaceEmbeddings
 sentence-transformers
 
-
-
 # Explicitly add a recent, compatible version of unstructured
 unstructured[all-docs]>=0.14.0
 olefile>=0.46.0 # <-- ADD THIS LINE to ensure a Python 3 compatible version
-# Required by JSONLoader's jq_schema argument
+# Required by JSONLoaders jq_schema argument
 jq
 
 
@@ -43,3 +42,31 @@ ragas
 
 
 protobuf==3.20.3
+
+'''
+
+### NEW GEMINI REQ
+
+# --- Streamlit Frontend ---
+streamlit
+
+# --- Core LangChain & LLM Connectors ---
+langchain
+langchain-core
+langchain-community
+langchain-groq
+langchain-huggingface
+
+# --- Vector Database & Embeddings ---
+# For "from langchain_chroma import Chroma"
+langchain-chroma
+# The underlying vector database
+chromadb
+# Required for HuggingFaceEmbeddings
+sentence-transformers
+# Required for JSONLoader's jq_schema argument
+jq
+
+# --- Utilities & Data Science ---
+# For sqlite compatibility on Streamlit Cloud
+pysqlite3-binary; platform_system=="Linux"

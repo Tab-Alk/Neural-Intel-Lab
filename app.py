@@ -50,20 +50,32 @@ def main():
 
 
 def render_main_app():
+    # app.py
+
+def render_main_app():
     """Render the main application interface"""
     st.title("🧠 Neuro AI Explorer")
     st.markdown("Explore neuroscience and AI concepts through intelligent Q&A")
-    
-    # API Key input
-    api_key = st.sidebar.text_input(
-        "Enter your Groq API Key:",
-        type="password",
-        help="Get your API key from https://console.groq.com/"
-    )
-    
+
+    # API Key input - MODIFIED
+    # Check for the secret first, then fall back to manual input if not found.
+    # This makes it work both locally (with manual input) and on the cloud (with secrets).
+    try:
+        api_key = st.secrets["GROQ_API_KEY"]
+        st.sidebar.success("✅ Groq API Key loaded from secrets.")
+    except (KeyError, FileNotFoundError):
+        st.sidebar.warning("Groq API Key not found in secrets.")
+        api_key = st.sidebar.text_input(
+            "Enter your Groq API Key:",
+            type="password",
+            help="Get your API key from https://console.groq.com/"
+        )
+
     if not api_key:
-        st.warning("Please enter your Groq API key in the sidebar to continue.")
+        st.warning("Please provide your Groq API key to continue.")
         return
+
+    # ... rest of the function
     
     # Main query interface
     st.markdown("### Ask a Question")

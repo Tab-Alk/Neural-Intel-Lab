@@ -8,7 +8,3 @@ secondaryBackgroundColor="#F0EEEB" # Sidebar & default widget backgrounds: Sligh
 textColor="#333333"          # Main text color: Dark grey for good readability
 font="sans serif"
 
-[compatibility]
-# Use a Python version known to be compatible with ChromaDB and its dependencies
-# Python 3.11 is a good stable choice for many ML libraries
-pythonVersion = "3.11"
