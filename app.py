@@ -47,9 +47,10 @@ def main():
         st.error(f"❌ Application error: {e}")
         st.code(traceback.format_exc())
 
+
 def render_main_app():
     """Render the main application interface"""
-    st.title("🧠 Neuro AI Explorer")
+    st.title(" Neuro AI Explorer")
     st.markdown("Explore neuroscience and AI concepts through intelligent Q&A")
     
     # API Key input
@@ -88,4 +89,20 @@ def render_main_app():
                     with st.expander("📚 Sources", expanded=False):
                         for i, doc in enumerate(sources):
                             st.markdown(f"**Source {i+1}:**")
-                            st.markdown(f"- Title: {doc.metadata
+                            st.markdown(f"- Title: {doc.metadata}")
+            except Exception as e:
+                st.error(f"❌ Error while searching: {e}")
+                st.code(traceback.format_exc())
+
+# Placeholder functions referenced but not defined in the provided snippet.
+# They are defined here minimally so the script runs without NameError.
+
+def render_diagnostic_info(_):
+    pass
+
+def render_fallback_interface():
+    st.warning("Fallback interface: core engine unavailable.")
+
+
+if __name__ == "__main__":
+    main()
