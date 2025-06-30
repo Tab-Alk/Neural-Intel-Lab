@@ -50,30 +50,14 @@ def main():
         st.code(traceback.format_exc())
 
 
+# app.py
+
+# ... (previous code) ...
+
 def render_main_app():
     """Render the main application interface"""
-    st.title("🧠 Neuro AI Explorer")
-    st.markdown("Explore neuroscience and AI concepts through intelligent Q&A")
-    
-    # API Key input
-    api_key = st.sidebar.text_input(
-        "Enter your Groq API Key:",
-        type="password",
-        help="Get your API key from https://console.groq.com/"
-    )
-    
-    if not api_key:
-        st.warning("Please enter your Groq API key in the sidebar to continue.")
-        return
-    
-    # Main query interface
-    st.markdown("### Ask a Question")
-    query = st.text_area(
-        "Enter your question about neuroscience or AI:",
-        placeholder="e.g., What is the difference between supervised and unsupervised learning?",
-        height=100
-    )
-    
+    # ... (rest of the function) ...
+
     if st.button("🔍 Search", type="primary", use_container_width=True):
         if query.strip():
             try:
@@ -91,10 +75,18 @@ def render_main_app():
                     with st.expander("📚 Sources", expanded=False):
                         for i, doc in enumerate(sources):
                             st.markdown(f"**Source {i+1}:**")
-                            st.markdown(f"- Title: {doc.metadata}")
+                            # --- FIX STARTS HERE ---
+                            # Get the title from metadata. If 'title' key doesn't exist,
+                            # fall back to a default or create one from 'source' and 'seq_num'.
+                            title = doc.metadata.get('title', f"Document from {os.path.basename(doc.metadata.get('source', 'Unknown'))} (Chunk {doc.metadata.get('seq_num', 'N/A')})")
+                            st.markdown(f"- Title: {title}")
+                            # --- FIX ENDS HERE ---
+                            st.markdown(f"- Excerpt: {doc.page_content[:300]}...") # Added "..." for clarity
             except Exception as e:
                 st.error(f"❌ Error while searching: {e}")
                 st.code(traceback.format_exc())
+
+# ... (rest of the app.py file) ...
 
 
 def render_diagnostic_info(health_status):
