@@ -28,6 +28,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+import torch # Add this import here, with other core imports
+
 print("DEBUG: core_engine.py - After all core imports (os, re, langchain, etc.).")
 
 # Configure logging
@@ -39,7 +41,16 @@ DB_DIR = 'db' # Keep this as 'db' so it tries to create it there
 
 def get_embedding_function():
     """Gets the embedding function."""
-    return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    # Initialize the model on the CPU first, then move it to MPS if available
+    if torch.backends.mps.is_available():
+        device = "mps"
+        print("INFO: Using MPS for embeddings.")
+    else:
+        device = "cpu"
+        print("INFO: Using CPU for embeddings.")
+
+    # Explicitly set the device when initializing HuggingFaceEmbeddings
+    return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2", model_kwargs={'device': device})
 
 def get_vector_db():
     embedding_function = get_embedding_function()
