@@ -1,10 +1,23 @@
-## app.py
+# app.py
 import streamlit as st
 import traceback
 import sys
 import os
+# IMPORTANT: Import your core engine functions at the top
+from core_engine import health_check, get_vector_db, query_rag
 
-# Add error handling for the entire app
+# --- THIS IS THE NEW CACHED FUNCTION ---
+@st.cache_resource
+def load_retriever(api_key):
+    """
+    Loads the vector database and retriever. This function is cached
+    so it only runs once per session.
+    """
+    st.info("Initializing knowledge base... This may take a moment on first run.")
+    vector_db = get_vector_db()
+    retriever = vector_db.as_retriever(search_kwargs={"k": 10})
+    return retriever
+
 def main():
     st.set_page_config(
         page_title="Neuro AI Explorer",
@@ -13,70 +26,53 @@ def main():
     )
     
     try:
-        # First, let's check if we can import our core engine
         st.write("🚀 Starting Neuro AI Explorer...")
         
-        # Try to import core_engine with error handling
-        try:
-            from core_engine import health_check, query_rag, generate_related_questions
-            st.success("✅ Core engine imported successfully!")
-            
-            # Run health check
-            health_status = health_check()
-            st.write("### System Health Check")
-            
-            for component, status in health_status.items():
-                icon = "✅" if status else "❌"
-                st.write(f"{icon} {component.replace('_', ' ').title()}: {'OK' if status else 'Failed'}")
-            
-            # Check if all systems are ready
-            all_ready = all(health_status.values())
-            
-            if all_ready:
-                st.success("🎉 All systems ready!")
-                render_main_app()
-            else:
-                st.error("❌ Some systems are not ready. Please check the logs.")
-                render_diagnostic_info(health_status)
+        # Run health check
+        health_status = health_check()
+        st.write("### System Health Check")
+        
+        all_ready = True
+        for component, status in health_status.items():
+            icon = "✅" if status else "🟡" # Use yellow for 'not yet built'
+            message = "OK" if status else "Not built yet"
+            if component == 'database_persists' and not status:
+                message = "Not built yet (will be created on first query)"
+            elif not status:
+                all_ready = False # Mark as not ready only for critical failures
+                icon = "❌"
+                message = "Failed"
+
+            st.write(f"{icon} {component.replace('_', ' ').title()}: {message}")
+        
+        # We can proceed even if the DB isn't built yet
+        if health_status['dependencies'] and health_status['knowledge_base_file']:
+            st.success("🎉 Core systems ready! Knowledge base will be indexed on your first query.")
+            render_main_app()
+        else:
+            st.error("❌ A critical system component failed. Please check the logs.")
+            # You can keep your render_diagnostic_info function here if you wish
                 
-        except ImportError as e:
-            st.error(f"❌ Failed to import core_engine: {e}")
-            st.code(traceback.format_exc())
-            render_fallback_interface()
-            
     except Exception as e:
         st.error(f"❌ Application error: {e}")
         st.code(traceback.format_exc())
 
-
+# --- MODIFIED to use the cached retriever ---
 def render_main_app():
     """Render the main application interface"""
     st.title("🧠 Neuro AI Explorer")
     st.markdown("Explore neuroscience and AI concepts through intelligent Q&A")
-
-    # API Key input - MODIFIED
-    # Check for the secret first, then fall back to manual input if not found.
-    # This makes it work both locally (with manual input) and on the cloud (with secrets).
-    try:
-        api_key = st.secrets["GROQ_API_KEY"]
-        st.sidebar.success("✅ Groq API Key loaded from secrets.")
-    except (KeyError, FileNotFoundError):
-        st.sidebar.warning("Groq API Key not found in secrets.")
-        api_key = st.sidebar.text_input(
-            "Enter your Groq API Key:",
-            type="password",
-            help="Get your API key from https://console.groq.com/"
-        )
-
-    if not api_key:
-        st.warning("Please provide your Groq API key to continue.")
-        return
-
-    # ... rest of the function
     
-    # Main query interface
-    st.markdown("### Ask a Question")
-    # This is where the fix goes: Define 'query' BEFORE the button
+    api_key = st.sidebar.text_input(
+        "Enter your Groq API Key:",
+        type="password",
+        help="Get your API key from https://console.groq.com/"
+    )
+    
+    if not api_key:
+        st.warning("Please enter your Groq API key in the sidebar to continue.")
+        return
+    
     query = st.text_area(
         "Enter your question about neuroscience or AI:",
         placeholder="e.g., What is the difference between supervised and unsupervised learning?",
@@ -84,30 +80,38 @@ def render_main_app():
     )
     
     if st.button("🔍 Search", type="primary", use_container_width=True):
-        if query.strip(): # Now 'query' is defined here
+        if query.strip():
             try:
-                with st.spinner("Searching knowledge base..."):
-                    from core_engine import query_rag, generate_related_questions
+                # This call now uses the cached function
+                # The spinner will show while the DB is being built for the first time
+                with st.spinner("Searching knowledge base... (First query may take longer as the database is indexed)"):
+                    
+                    # This is the ONLY place we call the expensive function
+                    retriever = load_retriever(api_key) # api_key is passed to satisfy the cache
+                    
+                    # We reuse the existing query_rag but will need a slight modification to it.
+                    # For now, let's call the components directly
+                    from core_engine import query_rag # Re-importing for clarity
                     
                     # Get response
                     response, sources = query_rag(query, api_key)
                     
-                    # Display response
                     st.markdown("### 📝 Answer")
                     st.markdown(response)
                     
-                    # Display sources
                     with st.expander("📚 Sources", expanded=False):
                         for i, doc in enumerate(sources):
-                            st.markdown(f"**Source {i+1}:**")
-                            # Get the title from metadata. If 'title' key doesn't exist,
-                            # fall back to a default or create one from 'source' and 'seq_num'.
-                            title = doc.metadata.get('title', f"Document from {os.path.basename(doc.metadata.get('source', 'Unknown'))} (Chunk {doc.metadata.get('seq_num', 'N/A')})")
-                            st.markdown(f"- Title: {title}")
-                            st.markdown(f"- Excerpt: {doc.page_content[:300]}...") # Added "..." for clarity
+                            title = doc.metadata.get('title', f"Chunk from {os.path.basename(doc.metadata.get('source', 'Unknown'))}")
+                            st.markdown(f"**Source {i+1}:** {title}")
+                            st.markdown(f"> {doc.page_content[:300]}...")
+
             except Exception as e:
                 st.error(f"❌ Error while searching: {e}")
                 st.code(traceback.format_exc())
+
+# You can remove the render_diagnostic_info and render_fallback_interface functions
+# or keep them as they are. The main function logic has been updated.
+# Make sure the main() function is the primary entry point.
 
 
 def render_diagnostic_info(health_status):

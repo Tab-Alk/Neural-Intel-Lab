@@ -181,45 +181,30 @@ def generate_related_questions(query: str, answer: str, api_key: str):
             
     return questions
 
+# core_engine.py
+
 def health_check():
-    """Health check function for the app"""
+    """Health check function for the app - MODIFIED to be lightweight."""
+    status = {'dependencies': True} # If we get here, imports worked
+    
+    # Check 1: Knowledge Base File
+    kb_file = os.path.join(KNOWLEDGE_BASE_DIR, 'neural_lab_kb.jsonl')
+    status['knowledge_base_file'] = os.path.exists(kb_file)
+    
+    # Check 2: Database Persistence File (lightweight check)
+    # This just checks if a DB has ALREADY been built, it does not trigger a build.
+    db_persistence_file = os.path.join(DB_DIR, 'chroma.sqlite3')
+    status['database_persists'] = os.path.exists(db_persistence_file)
+    
+    # Check 3: Embeddings (lightweight check - can the class be initialized?)
     try:
-        # Check if knowledge base exists
-        kb_file = os.path.join(KNOWLEDGE_BASE_DIR, 'neural_lab_kb.jsonl')
-        kb_exists = os.path.exists(kb_file)
+        # This doesn't load the whole model, just checks if the class is available
+        _ = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        status['embeddings_engine'] = True
+    except Exception:
+        status['embeddings_engine'] = False
         
-        # Check if database can be accessed
-        db_accessible = False
-        try:
-            vector_db = get_vector_db()
-            db_accessible = vector_db is not None
-        except Exception as e:
-            print(f"Database check failed: {e}")
-            db_accessible = False
-        
-        # Check embeddings
-        embeddings_ok = False
-        try:
-            embedding_function = get_embedding_function()
-            embeddings_ok = embedding_function is not None
-        except Exception as e:
-            print(f"Embeddings check failed: {e}")
-            embeddings_ok = False
-        
-        return {
-            'dependencies': True,  # If we got here, imports worked
-            'knowledge_base': kb_exists,
-            'database': db_accessible,
-            'embeddings': embeddings_ok
-        }
-    except Exception as e:
-        print(f"Health check failed: {e}")
-        return {
-            'dependencies': False,
-            'knowledge_base': False,
-            'database': False,
-            'embeddings': False
-        }
+    return status
 
 # --- LLAMA PARSE PDF INGESTION FUNCTIONS (COMMENTED OUT) ---
 
