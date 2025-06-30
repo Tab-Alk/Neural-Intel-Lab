@@ -1,432 +1,91 @@
 import streamlit as st
+import traceback
+import sys
+import os
 
-print("DEBUG: app.py - Script started at top of file.") # NEW print - VERY FIRST LINE
-st.set_page_config(page_title="Neural Intel Lab", page_icon="🧠", layout="wide")
-print("DEBUG: app.py - After st.set_page_config.") # This should now definitely show up if it gets this far
+# Add error handling for the entire app
+def main():
+    st.set_page_config(
+        page_title="Neuro AI Explorer",
+        page_icon="🧠",
+        layout="wide"
+    )
+    
+    try:
+        # First, let's check if we can import our core engine
+        st.write("🚀 Starting Neuro AI Explorer...")
+        
+        # Try to import core_engine with error handling
+        try:
+            from core_engine import health_check, query_rag, generate_related_questions
+            st.success("✅ Core engine imported successfully!")
+            
+            # Run health check
+            health_status = health_check()
+            st.write("### System Health Check")
+            
+            for component, status in health_status.items():
+                icon = "✅" if status else "❌"
+                st.write(f"{icon} {component.replace('_', ' ').title()}: {'OK' if status else 'Failed'}")
+            
+            # Check if all systems are ready
+            all_ready = all(health_status.values())
+            
+            if all_ready:
+                st.success("🎉 All systems ready!")
+                render_main_app()
+            else:
+                st.error("❌ Some systems are not ready. Please check the logs.")
+                render_diagnostic_info(health_status)
+                
+        except ImportError as e:
+            st.error(f"❌ Failed to import core_engine: {e}")
+            st.code(traceback.format_exc())
+            render_fallback_interface()
+            
+    except Exception as e:
+        st.error(f"❌ Application error: {e}")
+        st.code(traceback.format_exc())
 
-from core_engine import (
-    query_rag,
-    generate_related_questions,
-    get_vector_db,
-    get_embedding_function
-)
-print("DEBUG: app.py - After core_engine import.") # This should print if core_engine loads
-
-
-
-from core_engine import (
-    query_rag,
-    generate_related_questions,
-    get_embedding_function,
-)
-import re
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
-import os # Added for os.getenv and load_dotenv
-from dotenv import load_dotenv # Added for load_dotenv
-
-# ──────────────────────────── App configuration & GLOBAL STYLES ─────────────────────────────
-
-print("DEBUG: app.py - Before st.set_page_config") # DEBUG PRINT
-st.set_page_config(
-    page_title="The Neural Intelligence Lab",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-print("DEBUG: app.py - After st.set_page_config") # DEBUG PRINT
-
-# --- UNIFIED CSS BLOCK FOR ALL SPACING FIXES ---
-# This single block now controls the layout for the entire app.
-st.markdown("""
-<style>
-/* --- 1. GLOBAL LAYOUT & SPACING RESETS --- */
-
-/* Target the main container for more precise control */
-.block-container {
-    padding-top: 2rem !important;
-    padding-bottom: 2rem !important;
-    padding-left: 3rem !important;
-    padding-right: 3rem !important;
-}
-
-/* Remove default Streamlit spacing between elements in the main area */
-.main [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] > div[data-testid^="stMarkdownContainer"] {
-    margin-bottom: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-}
-
-/* Main page title */
-h1 {
-    margin-bottom: 0.25rem !important;
-}
-
-/* Main page subtitle */
-.main [data-testid="stMarkdownContainer"] p {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    margin-bottom: 1.5rem !important; /* Controlled space between subtitle and first button */
-}
-
-/* --- 2. SIDEBAR SPACING FIXES --- */
-
-section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
-    margin-bottom: 0.25rem !important; /* Space after sidebar titles */
-    padding-top: 0 !important;
-}
-section[data-testid="stSidebar"] hr {
-    margin: 0.75rem 0 !important; /* Tighter horizontal lines */
-}
-section[data-testid="stSidebar"] p,
-section[data-testid="stSidebar"] li {
-    line-height: 1.4 !important; /* Tighter line spacing for text */
-    font-size: 0.95rem;
-}
-section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
-    padding: 0 !important;
-    margin-bottom: 0.75rem !important; /* Space after each markdown block */
-}
-
-/* --- 3. STARTER QUESTION BUTTONS & SECTION --- */
-
-/* This container controls the space BETWEEN buttons */
-.starter-btn-container {
-    margin-bottom: 0.6rem !important;
-}
-
-.starter-btn-container div.stButton > button:first-child {
-    background: #FFFFFF !important;
-    border: 1px solid #D0D0D0 !important;
-    border-radius: 0.5rem !important;
-    padding: 1rem 1.25rem !important;
-    font: 500 1rem -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-    color: #1D1D1F !important;
-    text-align: left !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
-    margin: 0 !important;
-    height: auto !important;
-    white-space: normal !important;
-    width: 100% !important;
-}
-
-.starter-btn-container div.stButton > button:first-child:hover {
-    border-color: #007aff !important;
-    color: #007aff !important;
-    background: #f7f9fc !important;
-}
-
-/* --- 4. "ASK ANOTHER QUESTION" SECTION --- */
-
-.question-input-section {
-    padding-top: 2.5rem !important; /* Controls space above the heading */
-}
-
-.question-input-section h4 {
-    text-align: center;
-    color: #1D1D1F;
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1rem !important; /* Space between heading and input box */
-}
-
-div[data-testid="stTextInput"] input {
-    background-color: #FFFFFF;
-    border: 1px solid #E0E0E0;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
-    font-size: 1.05rem;
-}
-
-/* --- 5. VERTICAL SPACER FIX --- */
-
-/* This empty div will expand to push all content up, solving the vertical alignment issue. */
-.main > div {
-    display: flex;
-    flex-direction: column;
-}
-.spacer {
-    flex-grow: 1;
-}
-
-/* --- App background colors --- */
-section[data-testid="stSidebar"] {
-    background-color: #F0EEEB !important;
-}
-.main {
-    background-color: #FBF8F6;
-}
-
-</style>
-""", unsafe_allow_html=True)
-print("DEBUG: app.py - After CSS markdown") # DEBUG PRINT
-
-
-# Add title and description at the top of the main script
-st.title("The Neural Intelligence Lab")
-st.markdown(
-    "Compare how biological brains and artificial intelligence actually work. "
-    "Ask questions about neurons, neural networks, learning, memory, or decision‑making. "
-    "Get answers that explore both worlds of intelligence."
-)
-
-print("DEBUG: app.py - Before function definitions (rest of code)") # DEBUG PRINT
-
-# ─────────────────────────────  State management & Helpers (NO CHANGES) ─────────────────────────────
-def initialize_state():
-    print("DEBUG: initialize_state() called") # DEBUG PRINT
-    if "response" not in st.session_state:
-        st.session_state.response = None
-    if "related_questions" not in st.session_state:
-        st.session_state.related_questions = []
-    if "user_query" not in st.session_state:
-        st.session_state.user_query = ""
-    if "feedback_given" not in st.session_state:
-        st.session_state.feedback_given = False
-    if "active_starter" not in st.session_state:
-        st.session_state.active_starter = ""
-    print("DEBUG: initialize_state() finished") # DEBUG PRINT
-
-
-def sent_tokenize_regex(text: str) -> list[str]:
-    return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
-
-
-def highlight_text(source_text: str, generated_answer: str, threshold: float = 0.70) -> str:
-    print("DEBUG: highlight_text() called") # DEBUG PRINT
-    embed = get_embedding_function()
-    print("DEBUG: highlight_text() - After get_embedding_function()") # DEBUG PRINT
-    src_sents = sent_tokenize_regex(source_text)
-    ans_sents = sent_tokenize_regex(generated_answer)
-    if not src_sents or not ans_sents:
-        return source_text
-    src_emb = embed.embed_documents(src_sents)
-    ans_emb = embed.embed_documents(ans_sents)
-    sim = cosine_similarity(ans_emb, src_emb)
-    marked = {
-        src_sents[np.argmax(row)]
-        for row in sim
-        if row.max() > threshold
-    }
-    out = []
-    for s in src_sents:
-        if s in marked:
-            out.append(f"<mark style='background:yellow'>{s}</mark>")
-        else:
-            out.append(s)
-    print("DEBUG: highlight_text() finished") # DEBUG PRINT
-    return " ".join(out)
-
-
-def render_sources(retrieved_docs: list, answer: str):
-    print("DEBUG: render_sources() called") # DEBUG PRINT
-    if not retrieved_docs: return
-    for idx, doc in enumerate(retrieved_docs, start=1):
-        text = doc.page_content
-        heading = doc.metadata.get("heading", "")
-        if not heading and text:
-            first_sentence = text.split(".")[0][:80]
-            heading = first_sentence + "…" if len(first_sentence) == 80 else first_sentence
-        elif not heading:
-            heading = "Untitled"
-        st.markdown(f"**Excerpt {idx}: {heading}**")
-        if text:
-            highlighted = highlight_text(text, answer)
-            st.markdown(highlighted, unsafe_allow_html=True)
-        else:
-            st.markdown("*No content available*")
-        if idx < len(retrieved_docs): st.markdown("---")
-    print("DEBUG: render_sources() finished") # DEBUG PRINT
-
-
-def handle_query(query: str, from_starter: bool = False):
-    print(f"DEBUG: handle_query() called with query: {query}") # DEBUG PRINT
-    st.session_state.feedback_given = False
-    st.session_state.active_starter = query if from_starter else ""
-    load_dotenv() # Make sure .env is loaded first if needed
-    api_key = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY")
+def render_main_app():
+    """Render the main application interface"""
+    st.title("🧠 Neuro AI Explorer")
+    st.markdown("Explore neuroscience and AI concepts through intelligent Q&A")
+    
+    # API Key input
+    api_key = st.sidebar.text_input(
+        "Enter your Groq API Key:",
+        type="password",
+        help="Get your API key from https://console.groq.com/"
+    )
+    
     if not api_key:
-        st.error("API Key is missing. Please set it in your environment or Streamlit secrets.")
-        print("ERROR: API Key is missing!") # DEBUG PRINT
+        st.warning("Please enter your Groq API key in the sidebar to continue.")
         return
-    print("DEBUG: handle_query() - Before query_rag") # DEBUG PRINT
-    with st.spinner("Synthesizing answer…"):
-        answer, sources = query_rag(query, api_key=api_key)
-        st.session_state.response = {"query": query, "answer": answer, "sources": sources}
-    print("DEBUG: handle_query() - After query_rag") # DEBUG PRINT
-    with st.spinner("Generating related questions…"):
-        st.session_state.related_questions = generate_related_questions(query, answer, api_key=api_key)
-    print("DEBUG: handle_query() finished") # DEBUG PRINT
-
-# ───────────────────────────────  UI builders (REVISED)  ────────────────────────────────
-
-def render_header() -> None:
-    """Layered sidebar introduction."""
-    print("DEBUG: render_header() called") # DEBUG PRINT
-    with st.sidebar:
-        st.markdown("### What is this App?")
-        st.write(
-            "The Neural Intelligence Lab is a specialized AI-powered research tool designed to accelerate literature reviews and comparative analyses in neuroscience and artificial intelligence."
-        )
-        st.write(
-            "It solves the challenge of navigating vast scientific data by intelligently parsing and synthesizing diverse research, delivering accurate, source-backed answers."
-        )
-        st.write(
-            "Every response features highlighted sources and intelligent follow-up questions, providing transparent, verifiable, and guided research sessions."
-        )
-        st.markdown("**Ready to begin?** \nStart by clicking a starter question or asking your own!", unsafe_allow_html=True)
-        st.markdown("<div style='margin-bottom: 0.5rem'></div>", unsafe_allow_html=True)
-        st.markdown("---")
-        st.markdown("### Technical Implementation")
-        st.markdown("""
-        * **Multi-Format Document Ingestion (LlamaParse):** Robustly parses complex PDFs and other research documents, expanding the knowledge base for comprehensive insights.  
-        * **Intelligent RAG Pipeline (LangChain, Groq LLMs):** Combines advanced retrieval (ChromaDB) with powerful Llama 3 models for precise, hallucination-free answers.  
-        * **Explainability & Discovery:** Provides semantic source highlighting and AI-generated follow-up questions for transparent and guided exploration.  
-        * **Quantitative Evaluation (Ragas):** Ensures continuous quality assurance of answer faithfulness and relevance.
-        """)
-        st.markdown("---")
-        st.markdown("### Created By: Tabarek Alkhalidi")
-        st.markdown(
-            "[![GitHub](https://img.shields.io/badge/GitHub-Tab--Alk-black?style=for-the-badge&logo=github)](https://github.com/Tab-Alk)"
-        )
-        st.markdown(
-            "[![LinkedIn](https://img.shields.io/badge/LinkedIn-Tabarek%20Alkhalidi-blue?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/tabarek-alkhalidi/)"
-        )
-        st.markdown(
-            "[![Project Repo](https://img.shields.io/badge/Project%20Repo-Neural%20Intel%20Lab-purple?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Tab-Alk/Neural-Intel-Lab)"
-        )
-        st.markdown("---")
-        st.caption("© 2025 The Neural Intelligence Lab. V2.0")
-    print("DEBUG: render_header() finished") # DEBUG PRINT
-
-
-def render_apple_style_input_area() -> None:
-    print("DEBUG: render_apple_style_input_area() called") # DEBUG PRINT
-    STARTER_QUESTIONS = [
-        "Why can deep learning excel at pattern recognition yet still struggle with the common‑sense reasoning that comes naturally to humans?",
-        "How does the brain consolidate memories during sleep, and how could replay‑style mechanisms inspire more robust continual‑learning in AI?",
-        "What lessons from human attention can help us design faster, energy‑efficient AI models that run directly on edge devices?",
-    ]
-
-    # --- Vertical layout for starter questions ---
-    for q in STARTER_QUESTIONS:
-        # We now wrap each button in a div that our CSS can target for spacing.
-        st.markdown('<div class="starter-btn-container">', unsafe_allow_html=True)
-        if st.button(q, key=f"starter_{q}", use_container_width=True):
-            st.session_state.user_query = q
-            handle_query(q, from_starter=True)
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # --- "Ask another question" section ---
-    st.markdown('<div class="question-input-section">', unsafe_allow_html=True)
-    # The h4 style is now controlled by the global CSS, not inline styles.
-    st.markdown("<h4>Ask another question</h4>", unsafe_allow_html=True)
-
-    def set_query_from_input():
-        st.session_state.user_query = st.session_state.input_query.strip()
-    st.text_input(
-        "Ask your question", key="input_query", placeholder="Type here…",
-        on_change=set_query_from_input, label_visibility="collapsed"
+    
+    # Main query interface
+    st.markdown("### Ask a Question")
+    query = st.text_area(
+        "Enter your question about neuroscience or AI:",
+        placeholder="e.g., What is the difference between supervised and unsupervised learning?",
+        height=100
     )
-    st.markdown('</div>', unsafe_allow_html=True)
-    print("DEBUG: render_apple_style_input_area() finished") # DEBUG PRINT
-
-
-def render_response_area() -> None:
-    """Answer, sources, and feedback block with one‑time feedback buttons."""
-    print("DEBUG: render_response_area() called") # DEBUG PRINT
-    st.markdown("---")
-    resp = st.session_state.response
-
-    # Answer heading
-    st.markdown(
-        "<h3 style='text-align:center;color:#1D1D1F;margin-bottom:12px;"
-        "font-size:1.6rem;font-weight:700'>Answer</h3>",
-        unsafe_allow_html=True,
-    )
-    with st.container():
-        st.markdown(
-            """
-            <div style="
-                border: 1px solid rgba(0, 0, 0, 0.1);
-                background-color: #ffffff;
-                border-radius: 0.5rem;
-                padding: 1.2rem;
-                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-                font-size: 1.1rem;
-                line-height: 1.6;
-                color: #1D1D1F;
-            ">
-            """ + resp["answer"] + "</div>",
-            unsafe_allow_html=True
-        )
-    st.write("")
-
-    # Related concepts expander (collapsed by default)
-    if st.session_state.related_questions:
-        with st.expander("Related Questions to Explore", expanded=False):
-            for i, q in enumerate(st.session_state.related_questions):
-                st.markdown('<div class="related-q-btn">', unsafe_allow_html=True)
-                if st.button(q, key=f"rel_q_{i}_{hash(q)}", use_container_width=True):
-                    st.session_state.user_query = q
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-
-    # Sources section
-    st.subheader("Sources")
-    with st.expander("View Retrieved Sources"):
-        retrieved_docs = resp.get("sources", [])
-        render_sources(retrieved_docs, resp["answer"])
-
-    st.markdown("---")
-
-    # ------------- Feedback logic -------------
-    def set_feedback():
-        st.session_state.feedback_given = True
-
-    if st.session_state.feedback_given:
-        st.success("Thank you for your feedback!")
-    else:
-        st.write("Was this answer helpful?")
-        col_yes, col_no, _ = st.columns([1, 1, 5])
-        with col_yes:
-            st.markdown('<div class="feedback-btn">', unsafe_allow_html=True)
-            st.button("Yes", key="feedback_yes", on_click=set_feedback, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        with col_no:
-            st.markdown('<div class="feedback-btn">', unsafe_allow_html=True)
-            st.button("No", key="feedback_no", on_click=set_feedback, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-    print("DEBUG: render_response_area() finished") # DEBUG PRINT
-
-
-# ────────────────────────────────  Main flow (REVISED) ────────────────────────────────
-
-print("DEBUG: app.py - Before initialize_state()") # DEBUG PRINT
-initialize_state()
-print("DEBUG: app.py - After initialize_state()") # DEBUG PRINT
-
-print("DEBUG: app.py - Before render_header()") # DEBUG PRINT
-render_header()
-print("DEBUG: app.py - After render_header()") # DEBUG PRINT
-
-print("DEBUG: app.py - Before render_apple_style_input_area()") # DEBUG PRINT
-render_apple_style_input_area()
-print("DEBUG: app.py - After render_apple_style_input_area()") # DEBUG PRINT
-
-
-# This is the key fix for vertical alignment. This spacer div grows to fill
-# all available space, pushing the content above it to the top.
-if not st.session_state.response:
-    st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
-
-print("DEBUG: app.py - Before user_query check") # DEBUG PRINT
-if st.session_state.user_query and st.session_state.user_query != st.session_state.active_starter:
-    handle_query(st.session_state.user_query, from_starter=False)
-    st.session_state.user_query = ""
-print("DEBUG: app.py - After user_query check") # DEBUG PRINT
-
-print("DEBUG: app.py - Before response render check") # DEBUG PRINT
-if st.session_state.response:
-    render_response_area()
-print("DEBUG: app.py - End of app.py script") # DEBUG PRINT
+    
+    if st.button("🔍 Search", type="primary", use_container_width=True):
+        if query.strip():
+            try:
+                with st.spinner("Searching knowledge base..."):
+                    from core_engine import query_rag, generate_related_questions
+                    
+                    # Get response
+                    response, sources = query_rag(query, api_key)
+                    
+                    # Display response
+                    st.markdown("### 📝 Answer")
+                    st.markdown(response)
+                    
+                    # Display sources
+                    with st.expander("📚 Sources", expanded=False):
+                        for i, doc in enumerate(sources):
+                            st.markdown(f"**Source {i+1}:**")
+                            st.markdown(f"- Title: {doc.metadata
