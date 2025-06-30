@@ -50,9 +50,6 @@ def main():
 
 
 def render_main_app():
-    # app.py
-
-def render_main_app():
     """Render the main application interface"""
     st.title("🧠 Neuro AI Explorer")
     st.markdown("Explore neuroscience and AI concepts through intelligent Q&A")
