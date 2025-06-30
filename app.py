@@ -1,4 +1,3 @@
-
 ## app.py
 import streamlit as st
 import traceback
@@ -50,16 +49,33 @@ def main():
         st.code(traceback.format_exc())
 
 
-# app.py
-
-# ... (previous code) ...
-
 def render_main_app():
     """Render the main application interface"""
-    # ... (rest of the function) ...
-
+    st.title("🧠 Neuro AI Explorer")
+    st.markdown("Explore neuroscience and AI concepts through intelligent Q&A")
+    
+    # API Key input
+    api_key = st.sidebar.text_input(
+        "Enter your Groq API Key:",
+        type="password",
+        help="Get your API key from https://console.groq.com/"
+    )
+    
+    if not api_key:
+        st.warning("Please enter your Groq API key in the sidebar to continue.")
+        return
+    
+    # Main query interface
+    st.markdown("### Ask a Question")
+    # This is where the fix goes: Define 'query' BEFORE the button
+    query = st.text_area(
+        "Enter your question about neuroscience or AI:",
+        placeholder="e.g., What is the difference between supervised and unsupervised learning?",
+        height=100
+    )
+    
     if st.button("🔍 Search", type="primary", use_container_width=True):
-        if query.strip():
+        if query.strip(): # Now 'query' is defined here
             try:
                 with st.spinner("Searching knowledge base..."):
                     from core_engine import query_rag, generate_related_questions
@@ -75,18 +91,14 @@ def render_main_app():
                     with st.expander("📚 Sources", expanded=False):
                         for i, doc in enumerate(sources):
                             st.markdown(f"**Source {i+1}:**")
-                            # --- FIX STARTS HERE ---
                             # Get the title from metadata. If 'title' key doesn't exist,
                             # fall back to a default or create one from 'source' and 'seq_num'.
                             title = doc.metadata.get('title', f"Document from {os.path.basename(doc.metadata.get('source', 'Unknown'))} (Chunk {doc.metadata.get('seq_num', 'N/A')})")
                             st.markdown(f"- Title: {title}")
-                            # --- FIX ENDS HERE ---
                             st.markdown(f"- Excerpt: {doc.page_content[:300]}...") # Added "..." for clarity
             except Exception as e:
                 st.error(f"❌ Error while searching: {e}")
                 st.code(traceback.format_exc())
-
-# ... (rest of the app.py file) ...
 
 
 def render_diagnostic_info(health_status):
@@ -132,10 +144,16 @@ def render_diagnostic_info(health_status):
     
     # Try to manually create database
     st.markdown("### 🛠️ Manual Database Creation")
+    # This button might cause issues if build_database_from_jsonl is not defined or correctly callable
+    # Ensure core_engine has a function named build_database_from_jsonl if you want to use this.
     if st.button("🔧 Try to Create Database Manually"):
         try:
             with st.spinner("Creating database..."):
-                from core_engine import build_database_from_jsonl
+                # Make sure this function exists and is imported from core_engine
+                # For this specific app, it might be better to just rerun get_vector_db()
+                # or remove this button if it's not truly needed.
+                # Assuming `build_database_from_jsonl` should exist in core_engine based on its usage here.
+                from core_engine import build_database_from_jsonl # This line might need review if build_database_from_jsonl doesn't exist
                 db = build_database_from_jsonl()
                 st.success("✅ Database created successfully!")
                 st.experimental_rerun()
