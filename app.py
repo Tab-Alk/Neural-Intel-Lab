@@ -196,27 +196,43 @@ def render_sources(retrieved_docs: list, answer: str):
     if not retrieved_docs:
         return
 
-    # --- NEW: Only process the first 3 documents from the list ---
-    docs_to_show = retrieved_docs[:3]
+    # --- NEW: Deduplicate and group sources by their origin file ---
+    source_map = {}
+    for doc in retrieved_docs:
+        # Use the source file path as the unique key
+        source_key = doc.metadata.get("source", "Unknown Source")
+        if source_key not in source_map:
+            source_map[source_key] = {
+                "content": [],
+                "metadata": doc.metadata
+            }
+        source_map[source_key]["content"].append(doc.page_content)
 
-    for idx, doc in enumerate(docs_to_show, start=1):
-        text = doc.page_content
-        
-        # Logic to get the title remains the same
-        title = doc.metadata.get("title")
+    # --- REVISED: Iterate through the consolidated sources ---
+    # Convert the map to a list for indexed iteration
+    consolidated_sources = list(source_map.values())
+    
+    for idx, source_data in enumerate(consolidated_sources, start=1):
+        # Join all content chunks from the same source file
+        full_text = " ".join(source_data["content"])
+        metadata = source_data["metadata"]
+
+        # Determine the title using the same logic as before
+        title = metadata.get("title")
         if not title:
-            source_file = doc.metadata.get("source", "Unknown Source")
+            source_file = metadata.get("source", "Unknown Source")
             title = os.path.basename(source_file)
 
         st.markdown(f"**Excerpt {idx}: {title}**")
-        if text:
-            highlighted = highlight_text(text, answer)
+        if full_text:
+            # Highlight against the complete, merged text
+            highlighted = highlight_text(full_text, answer)
             st.markdown(highlighted, unsafe_allow_html=True)
         else:
             st.markdown("*No content available*")
-            
-        # Add a separator line between the sources
-        if idx < len(docs_to_show):
+        
+        # Add a separator if it's not the last source
+        if idx < len(consolidated_sources):
             st.markdown("---")
 
 
