@@ -3,11 +3,10 @@
 Welcome to the Neural Intelligence Lab! This is a web-based, interactive knowledge discovery platform **designed to address a critical pain point for professionals and researchers working at the intersection of neuroscience and artificial intelligence.** In these rapidly evolving fields, staying abreast of the latest literature, synthesizing information, and comparing disparate learning mechanisms can be an overwhelming, time-consuming task. **This application provides a powerful tool for accelerating literature reviews and facilitating in-depth comparative analyses of AI learning mechanisms as informed by neuroscientific principles.**
 
 
-Live Application URL: [https://neural-intel-lab.streamlit.app/](https://neural-intel-lab.streamlit.app/)
-
 It achieves this by employing a modern Retrieval-Augmented Generation (RAG) pipeline, which allows it to answer questions based on a curated knowledge base and then guide the user toward new, interesting concepts, **transforming complex information overload into structured, verifiable insights.**
 
-Live Application URL: ([https://neural-intel-lab.streamlit.app/])
+Live Application URL: [https://neural-intel-lab.streamlit.app/](https://neural-intel-lab.streamlit.app/)
+
 
 ## Features
 
@@ -63,4 +62,4 @@ This project includes a robust evaluation suite to measure the quality of the RA
 python evaluate.py
 ```
 
-This script will run the questions from `evaluation/gold_standard_test_set.json` against the RAG system and use Ragas to score the results. The final report will be saved to `evaluation/evaluation_results.csv`.
+This script will run the questions from `evaluation/gold_standard_test_set.json` against the RAG s booystem and use Ragas to score the results. The final report will be saved to `evaluation/evaluation_results.csv`.

@@ -193,27 +193,47 @@ def highlight_text(source_text: str, generated_answer: str, threshold: float = 0
 
 # --- 2. THIS IS THE ONLY FUNCTION THAT HAS BEEN MODIFIED ---
 def render_sources(retrieved_docs: list, answer: str):
-    if not retrieved_docs: return
-    for idx, doc in enumerate(retrieved_docs, start=1):
-        text = doc.page_content
-        
-        # --- NEW LOGIC TO GET THE CORRECT TITLE ---
-        # 1. Try to get a 'title' from metadata.
-        # 2. If no 'title', use the 'source' filename as a fallback.
-        # 3. If neither, use "Untitled".
-        title = doc.metadata.get("title") 
+    if not retrieved_docs:
+        return
+
+    # --- NEW: Deduplicate and group sources by their origin file ---
+    source_map = {}
+    for doc in retrieved_docs:
+        # Use the source file path as the unique key
+        source_key = doc.metadata.get("source", "Unknown Source")
+        if source_key not in source_map:
+            source_map[source_key] = {
+                "content": [],
+                "metadata": doc.metadata
+            }
+        source_map[source_key]["content"].append(doc.page_content)
+
+    # --- REVISED: Iterate through the consolidated sources ---
+    # Convert the map to a list for indexed iteration
+    consolidated_sources = list(source_map.values())
+    
+    for idx, source_data in enumerate(consolidated_sources, start=1):
+        # Join all content chunks from the same source file
+        full_text = " ".join(source_data["content"])
+        metadata = source_data["metadata"]
+
+        # Determine the title using the same logic as before
+        title = metadata.get("title")
         if not title:
-            source_file = doc.metadata.get("source", "Unknown Source")
+            source_file = metadata.get("source", "Unknown Source")
             title = os.path.basename(source_file)
-        # --- END NEW LOGIC ---
 
         st.markdown(f"**Excerpt {idx}: {title}**")
-        if text:
-            highlighted = highlight_text(text, answer)
+        if full_text:
+            # Highlight against the complete, merged text
+            highlighted = highlight_text(full_text, answer)
             st.markdown(highlighted, unsafe_allow_html=True)
         else:
             st.markdown("*No content available*")
-        if idx < len(retrieved_docs): st.markdown("---")
+        
+        # Add a separator if it's not the last source
+        if idx < len(consolidated_sources):
+            st.markdown("---")
 
 
 def handle_query(query: str, from_starter: bool = False):
