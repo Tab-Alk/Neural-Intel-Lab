@@ -27,3 +27,4 @@ pysqlite3-binary
 # Pin protobuf to a stable version to prevent C++ extension errors
 protobuf==3.20.3
 unstructured>=0.10.12
+markdown
