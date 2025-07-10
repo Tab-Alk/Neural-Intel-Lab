@@ -1,9 +1,5 @@
 # The Neural Intelligence Lab: Accelerating Research & Driving Insights at the Neuroscience-AI Frontier
 
-## Demo Video
-
-[![Watch the demo](https://img.youtube.com/vi/cBWg7PFrFwU/0.jpg)](https://youtu.be/cBWg7PFrFwU?si=pPIhgBVLY8f1Vnvx)
-
 Welcome to the Neural Intelligence Lab! This is a web-based, interactive knowledge discovery platform designed to address a critical pain point for professionals and researchers working at the intersection of neuroscience and artificial intelligence. In these rapidly evolving fields, staying abreast of the latest literature, synthesizing information, and comparing disparate learning mechanisms can be an overwhelming, time-consuming task. This application provides a powerful tool for accelerating literature reviews and facilitating in-depth comparative analyses of AI learning mechanisms as informed by neuroscientific principles.
 
 It achieves this by employing a modern Retrieval-Augmented Generation (RAG) pipeline, which allows it to answer questions based on a curated knowledge base and then guide the user toward new, interesting concepts, transforming complex information overload into structured, verifiable insights.
