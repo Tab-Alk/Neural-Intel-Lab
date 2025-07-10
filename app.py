@@ -208,13 +208,23 @@ def render_sources(retrieved_docs: list, answer: str):
         title = docs[0].metadata.get("title") or os.path.basename(source_file)
         if title.endswith('.md'):
             title = title[:-3]
-        for i, doc in enumerate(docs[:3]):  # Show up to 3 chunks per file
-            st.markdown(f"**Excerpt {excerpt_idx}: {title} (part {i+1})**" if len(docs)>1 else f"**Excerpt {excerpt_idx}: {title}**")
-            highlighted = highlight_text(doc.page_content, answer)
-            st.markdown(highlighted, unsafe_allow_html=True)
-            if excerpt_idx < len(retrieved_docs):
-                st.markdown("---")
-            excerpt_idx += 1
+        # Deduplicate by content (show up to 3 unique chunks per file)
+    seen = set()
+    unique_docs = []
+    for doc in docs:
+        content_hash = hash(doc.page_content)
+        if content_hash not in seen:
+            seen.add(content_hash)
+            unique_docs.append(doc)
+        if len(unique_docs) == 3:
+            break
+    for i, doc in enumerate(unique_docs):
+        st.markdown(f"**Excerpt {excerpt_idx}: {title} (part {i+1})**" if len(unique_docs) > 1 else f"**Excerpt {excerpt_idx}: {title}**")
+        highlighted = highlight_text(doc.page_content, answer)
+        st.markdown(highlighted, unsafe_allow_html=True)
+        if excerpt_idx < len(retrieved_docs):
+            st.markdown("---")
+        excerpt_idx += 1
 
 
 def handle_query(query: str, from_starter: bool = False):
