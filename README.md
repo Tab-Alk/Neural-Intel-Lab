@@ -8,7 +8,7 @@ Live Application URL: https://neural-intel-lab.streamlit.app/
 
 <div align="center">
   <a href="https://youtu.be/cBWg7PFrFwU?si=pPIhgBVLY8f1Vnvx" target="_blank">
-    <img src="https://img.youtube.com/vi/cBWg7PFrFwU/0.jpg" alt="Watch the demo" width="700"/>
+    <img src="https://img.youtube.com/vi/cBWg7PFrFwU/0.jpg" alt="Watch the demo" width="400"/>
   </a>
   <br/>
   <b>Watch the Demo Video</b>
