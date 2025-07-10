@@ -60,12 +60,33 @@ This project includes a robust evaluation suite to measure the quality and relia
 python evaluate.py
 ```
 
-This script will run the questions from evaluation/gold_standard_test_set.json against the RAG system and use Ragas to score the results. The final report will be saved to evaluation/evaluation_results.csv. Our latest evaluation, conducted on [Date of Evaluation - e.g., July 8, 2025], yielded the following key metrics:
+This script will run the questions from evaluation/gold_standard_test_set.json against the RAG system and use Ragas to score the results. The final report will be saved to evaluation/evaluation_results.csv.
 
-| Metric            | Score |
-|-------------------|-------|
-| Faithfulness      | 0.95  |
-| Context Relevance | 0.92  |
-| Answer Relevancy  | 0.90  |
+---
+
+## 🐳 Docker: Production-Ready Containerization
+
+This application is fully containerized with Docker to ensure consistent deployment across any environment (local, cloud, or production).
+
+### Build the Docker image
+```bash
+docker build -t neural-intel-lab .
+```
+
+### Run the app in a Docker container
+```bash
+docker run --rm -p 8501:8501 --env-file .env neural-intel-lab
+```
+
+- The app will be available at [http://localhost:8501](http://localhost:8501)
+- Make sure your `.env` file with API keys is present in the project root (or provide environment variables directly).
+
+**Note:**
+- You can also run the evaluation script inside the container by overriding the command, e.g.:
+  ```bash
+  docker run --rm -it --env-file .env neural-intel-lab python evaluate.py
+  ```
+
+---
 
 These scores demonstrate the system's ability to generate answers that are well-supported by the provided context, highly relevant to the user's query, and free from hallucination, ensuring a reliable and impactful research experience.

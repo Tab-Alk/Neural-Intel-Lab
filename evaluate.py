@@ -46,16 +46,29 @@ def main():
     rows = []
     
     logging.info("Processing test cases with the RAG system...")
+    # --- Truncation settings ---
+    MAX_Q_CHARS = 512
+    MAX_A_CHARS = 2048
+    MAX_CTX_CHARS = 2048
+
     for i, test_case in enumerate(test_cases):
         logging.info(f"Processing case {i+1}/{len(test_cases)}: {test_case['question']}")
         try:
             generated_answer, retrieved_context = run_rag_for_test_case(test_case['question'], api_key=groq_key)
+            # Truncate fields to avoid token overflow
+            q = str(test_case['question'])[:MAX_Q_CHARS]
+            a = str(generated_answer)[:MAX_A_CHARS]
+            ctxs = [str(c)[:MAX_CTX_CHARS] for c in retrieved_context]
+            gt_a = str(test_case.get('ground_truth_answer', ''))[:MAX_A_CHARS]
+            gt_ctx = str(test_case.get('ground_truth_context', ''))[:MAX_CTX_CHARS]
+            if len(test_case['question']) > MAX_Q_CHARS or len(generated_answer) > MAX_A_CHARS or any(len(c) > MAX_CTX_CHARS for c in retrieved_context):
+                logging.warning(f"Truncated input for case {i+1} to avoid exceeding token/context limits.")
             rows.append({
-                "question": test_case['question'],
-                "answer": generated_answer,
-                "contexts": retrieved_context,
-                "ground_truth": test_case['ground_truth_answer'],
-                "ground_truth_context": test_case['ground_truth_context']
+                "question": q,
+                "answer": a,
+                "contexts": ctxs,
+                "ground_truth": gt_a,
+                "ground_truth_context": gt_ctx
             })
         except Exception as e:
             logging.error(f"ERROR processing case {i+1}: {e}")
@@ -99,25 +112,38 @@ def main():
         batch_metric_dfs = []
         for m_name, m_obj in metrics_to_evaluate:
             logging.info("  → Metric %s on %s", m_name, batch_tag)
-            result = evaluate(
-                dataset=batch_ds,
-                metrics=[m_obj],
-                llm=ragas_llm,
-                embeddings=ragas_embeddings,
-                concurrency=1
-            )
             try:
-                df_m = result.to_pandas()
-            except AttributeError:
-                df_m = pd.DataFrame(result.scores)
-
-            metric_cols = [c for c in df_m.columns if c not in ("question", "answer", "contexts", "ground_truth", "ground_truth_context")]
-            df_m = df_m[["question"] + metric_cols].rename(columns={metric_cols[0]: m_name})
-            batch_metric_dfs.append(df_m)
+                result = evaluate(
+                    dataset=batch_ds,
+                    metrics=[m_obj],
+                    llm=ragas_llm,
+                    embeddings=ragas_embeddings
+                )
+                try:
+                    df_m = result.to_pandas()
+                except AttributeError:
+                    df_m = pd.DataFrame(result.scores)
+                metric_cols = [c for c in df_m.columns if c not in ("question", "answer", "contexts", "ground_truth", "ground_truth_context")]
+                df_m = df_m[["question"] + metric_cols].rename(columns={metric_cols[0]: m_name})
+                batch_metric_dfs.append(df_m)
+            except Exception as eval_err:
+                logging.error(f"Ragas evaluation failed for metric {m_name} in {batch_tag}: {eval_err}")
+                continue
 
         # merge metrics for this batch, then append to overall list
-        batch_df = reduce(lambda left, right: pd.merge(left, right, on="question"), batch_metric_dfs)
-        all_metric_dfs.append(batch_df)
+        if not batch_metric_dfs:
+            logging.warning(f"No metrics DataFrames for {batch_tag}. Skipping this batch.")
+            continue
+        # Debug: print columns of each DataFrame
+        for idx, df in enumerate(batch_metric_dfs):
+            logging.info(f"{batch_tag} metric {idx} DataFrame columns: {df.columns.tolist()}")
+            logging.info(f"{batch_tag} metric {idx} DataFrame head:\n{df.head()}")
+        try:
+            batch_df = reduce(lambda left, right: pd.merge(left, right, on="question"), batch_metric_dfs)
+            all_metric_dfs.append(batch_df)
+        except Exception as merge_err:
+            logging.error(f"Failed to merge metrics for {batch_tag}: {merge_err}")
+            continue
 
         logging.info("  …%s complete. Cooling down for %d seconds.", batch_tag, COOLDOWN)
         time.sleep(COOLDOWN)

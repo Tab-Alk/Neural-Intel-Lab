@@ -21,9 +21,7 @@ scikit-learn
 numpy<2.0.0
 
 # --- Critical Fixes & Environment ---
-# Patch for running ChromaDB on Streamlit Cloud
-pysqlite3-binary
-
+# (pysqlite3-binary removed for Docker compatibility)
 # Pin protobuf to a stable version to prevent C++ extension errors
 protobuf==3.20.3
 unstructured>=0.10.12
