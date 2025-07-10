@@ -246,7 +246,7 @@ def handle_query(query: str, from_starter: bool = False):
     if not api_key:
         st.error("API Key is missing. Please set it in your environment or Streamlit secrets.")
         return
-    with st.spinner("Synthesizing answer…"):
+    with st.spinner("Thinking…"):
         answer, sources = query_rag(query, api_key=api_key)
         st.session_state.response = {"query": query, "answer": answer, "sources": sources}
     with st.spinner("Generating related questions…"):
@@ -315,7 +315,7 @@ def render_apple_style_input_area() -> None:
         st.session_state.user_query = st.session_state.input_query.strip()
     st.text_input(
         "Ask your question", key="input_query", placeholder="Type here…",
-        on_change=set_query_from_input, label_visibility="collapsed"
+        on_change=set_query_from_input, label_visibility="collapsed", help=""
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
