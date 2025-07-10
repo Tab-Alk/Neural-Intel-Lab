@@ -206,6 +206,8 @@ def render_sources(retrieved_docs: list, answer: str):
     excerpt_idx = 1
     for source_file, docs in source_chunks.items():
         title = docs[0].metadata.get("title") or os.path.basename(source_file)
+        if title.endswith('.md'):
+            title = title[:-3]
         for i, doc in enumerate(docs[:3]):  # Show up to 3 chunks per file
             st.markdown(f"**Excerpt {excerpt_idx}: {title} (part {i+1})**" if len(docs)>1 else f"**Excerpt {excerpt_idx}: {title}**")
             highlighted = highlight_text(doc.page_content, answer)
