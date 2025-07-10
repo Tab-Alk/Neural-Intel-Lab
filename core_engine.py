@@ -2,11 +2,11 @@
 
 # Conditional patch for pysqlite3
 try:
-    __import__('pysqlite3')
+    import pysqlite3
     import sys
-    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-except ModuleNotFoundError:
-    pass
+    sys.modules["sqlite3"] = pysqlite3
+except ImportError:
+    pass  # fallback to system sqlite3 if pysqlite3 is not available
 
 import os
 import re
