@@ -74,7 +74,7 @@ def query_rag(query_text: str, api_key: str):
     Queries the RAG pipeline using the improved logic.
     """
     vector_db = get_vector_db()
-    retriever = vector_db.as_retriever(search_kwargs={"k": 5})
+    retriever = vector_db.as_retriever(search_kwargs={"k": 10})
     
     source_docs = retriever.invoke(query_text)
     context_text = "\n\n".join([doc.page_content for doc in source_docs])
