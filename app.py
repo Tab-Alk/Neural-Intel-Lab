@@ -196,45 +196,23 @@ def render_sources(retrieved_docs: list, answer: str):
     if not retrieved_docs:
         return
 
-    # --- NEW: Deduplicate and group sources by their origin file ---
-    source_map = {}
+    # Show up to 3 relevant chunks per unique source file
+    from collections import defaultdict
+    source_chunks = defaultdict(list)
     for doc in retrieved_docs:
-        # Use the source file path as the unique key
-        source_key = doc.metadata.get("source", "Unknown Source")
-        if source_key not in source_map:
-            source_map[source_key] = {
-                "content": [],
-                "metadata": doc.metadata
-            }
-        source_map[source_key]["content"].append(doc.page_content)
+        source_file = doc.metadata.get("source", "Unknown Source")
+        source_chunks[source_file].append(doc)
 
-    # --- REVISED: Iterate through the consolidated sources ---
-    # Convert the map to a list for indexed iteration
-    consolidated_sources = list(source_map.values())
-    
-    for idx, source_data in enumerate(consolidated_sources, start=1):
-        # Join all content chunks from the same source file
-        full_text = " ".join(source_data["content"])
-        metadata = source_data["metadata"]
-
-        # Determine the title using the same logic as before
-        title = metadata.get("title")
-        if not title:
-            source_file = metadata.get("source", "Unknown Source")
-            title = os.path.basename(source_file)
-
-        st.markdown(f"**Excerpt {idx}: {title}**")
-        if full_text:
-            # Highlight against the complete, merged text
-            highlighted = highlight_text(full_text, answer)
+    excerpt_idx = 1
+    for source_file, docs in source_chunks.items():
+        title = docs[0].metadata.get("title") or os.path.basename(source_file)
+        for i, doc in enumerate(docs[:3]):  # Show up to 3 chunks per file
+            st.markdown(f"**Excerpt {excerpt_idx}: {title} (part {i+1})**" if len(docs)>1 else f"**Excerpt {excerpt_idx}: {title}**")
+            highlighted = highlight_text(doc.page_content, answer)
             st.markdown(highlighted, unsafe_allow_html=True)
-        else:
-            st.markdown("*No content available*")
-        
-        # Add a separator if it's not the last source
-        if idx < len(consolidated_sources):
-            st.markdown("---")
-
+            if excerpt_idx < len(retrieved_docs):
+                st.markdown("---")
+            excerpt_idx += 1
 
 
 def handle_query(query: str, from_starter: bool = False):

@@ -18,7 +18,7 @@ streamlit
 jq
 python-dotenv
 scikit-learn
-numpy
+numpy<2.0.0
 
 # --- Critical Fixes & Environment ---
 # Patch for running ChromaDB on Streamlit Cloud

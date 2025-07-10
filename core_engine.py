@@ -17,7 +17,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from chromadb.config import Settings # ADDED: To configure and disable ChromaDB telemetry
+from chromadb.config import Settings 
+from langchain_community.document_loaders import DirectoryLoader, UnstructuredMarkdownLoader
 
 KNOWLEDGE_BASE_DIR = 'knowledge_base'
 DB_DIR = 'db'
@@ -29,7 +30,6 @@ def get_embedding_function():
     print("Loading embedding model... (This will only run once per session)")
     return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-# MODIFIED: Added client_settings to disable telemetry
 def get_vector_db():
     """Loads or builds the Chroma vector database with telemetry disabled."""
     # ADDED: Define settings to disable telemetry
@@ -38,21 +38,35 @@ def get_vector_db():
     embedding_function = get_embedding_function()
     
     if not os.path.exists(DB_DIR) or not os.listdir(DB_DIR):
-        print("Database not found or empty. Building now from .jsonl file...")
-        file_path = os.path.join(KNOWLEDGE_BASE_DIR, 'neural_lab_kb.jsonl')
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"Knowledge base file not found at {file_path}. Cannot build database.")
+        print("Database not found or empty. Building now from all files in knowledge_base...")
         
-        loader = JSONLoader(file_path=file_path, jq_schema='.', content_key="text", json_lines=True)
+        loader = DirectoryLoader(
+            KNOWLEDGE_BASE_DIR,
+            glob="**/*.md",
+            loader_cls=UnstructuredMarkdownLoader
+        )
         documents = loader.load()
+        print(f"Loaded {len(documents)} Markdown documents from '{KNOWLEDGE_BASE_DIR}'.")
+
+        if not documents:
+            raise FileNotFoundError(
+                f"No Markdown (.md) documents found in the '{KNOWLEDGE_BASE_DIR}' directory. "
+                "Please add at least one .md file to build the knowledge base."
+            )
         
-        # ADDED: Pass the settings when creating the DB
-        db = Chroma.from_documents(documents, embedding_function, persist_directory=DB_DIR, client_settings=client_settings)
+        # Split documents into smaller chunks for focused retrieval
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
+        split_docs = splitter.split_documents(documents)
+        
+        # Build the DB from split_docs
+        db = Chroma.from_documents(split_docs, embedding_function, persist_directory=DB_DIR, client_settings=client_settings)
         print("Vector database setup complete.")
     else:
         print("Loading existing vector database.")
         # ADDED: Pass the settings when loading the DB
         db = Chroma(persist_directory=DB_DIR, embedding_function=embedding_function, client_settings=client_settings)
+        
     return db
 
 def query_rag(query_text: str, api_key: str):
@@ -64,6 +78,10 @@ def query_rag(query_text: str, api_key: str):
     
     source_docs = retriever.invoke(query_text)
     context_text = "\n\n".join([doc.page_content for doc in source_docs])
+    # Limit context to 10,000 characters (about 3,000 tokens)
+    MAX_CONTEXT_CHARS = 10000
+    if len(context_text) > MAX_CONTEXT_CHARS:
+        context_text = context_text[:MAX_CONTEXT_CHARS]
     
     prompt_template_str = """
     You are an expert AI assistant. Your goal is to provide clear, concise, and accurate answers based on the context provided.
