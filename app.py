@@ -355,6 +355,7 @@ def render_response_area() -> None:
             for i, q in enumerate(st.session_state.related_questions):
                 st.markdown('<div class="related-q-btn">', unsafe_allow_html=True)
                 if st.button(q, key=f"rel_q_{i}_{hash(q)}", use_container_width=True):
+                    st.session_state.input_query = q
                     st.session_state.user_query = q
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
