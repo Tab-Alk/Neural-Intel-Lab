@@ -1,6 +1,6 @@
 # The Neural Intelligence Lab: Accelerating Research & Driving Insights at the Neuroscience-AI Frontier
 
-## 📺 Demo Video
+## Demo Video
 
 [![Watch the demo](https://img.youtube.com/vi/cBWg7PFrFwU/0.jpg)](https://youtu.be/cBWg7PFrFwU?si=pPIhgBVLY8f1Vnvx)
 
@@ -9,6 +9,14 @@ Welcome to the Neural Intelligence Lab! This is a web-based, interactive knowled
 It achieves this by employing a modern Retrieval-Augmented Generation (RAG) pipeline, which allows it to answer questions based on a curated knowledge base and then guide the user toward new, interesting concepts, transforming complex information overload into structured, verifiable insights.
 
 Live Application URL: https://neural-intel-lab.streamlit.app/
+
+<div align="center">
+  <a href="https://youtu.be/cBWg7PFrFwU?si=pPIhgBVLY8f1Vnvx" target="_blank">
+    <img src="https://img.youtube.com/vi/cBWg7PFrFwU/0.jpg" alt="Watch the demo" width="700"/>
+  </a>
+  <br/>
+  <b>Watch the Demo Video</b>
+</div>
 
 ## Features
 
