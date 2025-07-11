@@ -9,6 +9,8 @@ except ImportError:
     pass  # fallback to system sqlite3 if pysqlite3 is not available
 
 import os
+import logging
+logging.basicConfig(level=logging.INFO)
 import re
 import time
 import streamlit as st # ADDED: For caching decorator
@@ -32,7 +34,7 @@ def get_embedding_function():
     return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 def get_vector_db():
-    print(f"DB_DIR: {DB_DIR}, Exists: {os.path.exists(DB_DIR)}")
+    logging.info(f"DB_DIR: {DB_DIR}, Exists: {os.path.exists(DB_DIR)}")
     """Loads or builds the Chroma vector database with telemetry disabled."""
     # ADDED: Define settings to disable telemetry
     client_settings = Settings(anonymized_telemetry=False)
@@ -40,7 +42,7 @@ def get_vector_db():
     embedding_function = get_embedding_function()
     
     if not os.path.exists(DB_DIR) or not os.listdir(DB_DIR):
-        print("Database not found or empty. Building now from all files in knowledge_base...")
+        logging.info("Database not found or empty. Building now from all files in knowledge_base...")
         
         loader = DirectoryLoader(
             KNOWLEDGE_BASE_DIR,
@@ -48,7 +50,7 @@ def get_vector_db():
             loader_cls=UnstructuredMarkdownLoader
         )
         documents = loader.load()
-        print(f"Loaded {len(documents)} Markdown documents from '{KNOWLEDGE_BASE_DIR}'.")
+        logging.info(f"Loaded {len(documents)} Markdown documents from '{KNOWLEDGE_BASE_DIR}'.")
 
         if not documents:
             raise FileNotFoundError(
@@ -63,9 +65,9 @@ def get_vector_db():
         
         # Build the DB from split_docs
         db = Chroma.from_documents(split_docs, embedding_function, persist_directory=DB_DIR, client_settings=client_settings)
-        print("Vector database setup complete.")
+        logging.info("Vector database setup complete.")
     else:
-        print("Loading existing vector database.")
+        logging.info("Loading existing vector database.")
         # ADDED: Pass the settings when loading the DB
         db = Chroma(persist_directory=DB_DIR, embedding_function=embedding_function, client_settings=client_settings)
         
