@@ -10,6 +10,7 @@ except ImportError:
 
 import os
 import re
+import time
 import streamlit as st # ADDED: For caching decorator
 from langchain_community.document_loaders import JSONLoader
 from langchain_community.vectorstores import Chroma
@@ -73,16 +74,19 @@ def query_rag(query_text: str, api_key: str):
     """
     Queries the RAG pipeline using the improved logic.
     """
+    print("Starting RAG query...")
+    t0 = time.time()
     vector_db = get_vector_db()
-    retriever = vector_db.as_retriever(search_kwargs={"k": 10})
-    
+    print(f"Loaded vector DB in {time.time() - t0:.2f}s")
+    retriever = vector_db.as_retriever(search_kwargs={"k": 3})
+    t1 = time.time()
     source_docs = retriever.invoke(query_text)
+    print(f"Retrieved context in {time.time() - t1:.2f}s")
     context_text = "\n\n".join([doc.page_content for doc in source_docs])
     # Limit context to 10,000 characters (about 3,000 tokens)
     MAX_CONTEXT_CHARS = 10000
     if len(context_text) > MAX_CONTEXT_CHARS:
         context_text = context_text[:MAX_CONTEXT_CHARS]
-    
     prompt_template_str = """
     You are an expert AI assistant. Your goal is to provide clear, concise, and accurate answers based on the context provided.
     Compare and contrast the concepts from the provided text, focusing on the user's question.
@@ -100,7 +104,9 @@ def query_rag(query_text: str, api_key: str):
     llm = ChatGroq(temperature=0.2, model_name="llama3-70b-8192", api_key=api_key)
     
     rag_chain = prompt | llm | StrOutputParser()
+    t2 = time.time()
     response = rag_chain.invoke({"context": context_text, "question": query_text})
+    print(f"LLM call took {time.time() - t2:.2f}s")
 
     print("\n--- Retrieved Sources (for debugging) ---")
     for i, doc in enumerate(source_docs):
