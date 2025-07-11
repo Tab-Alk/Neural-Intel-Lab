@@ -20,30 +20,32 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from chromadb.config import Settings 
 from langchain_community.document_loaders import DirectoryLoader, UnstructuredMarkdownLoader
 
+persist_directory = os.path.abspath("./db")
+collection_name = "my_knowledge_base"
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
 KNOWLEDGE_BASE_DIR = 'knowledge_base'
-DB_DIR = 'db'
 
 # MODIFIED: Added the @st.cache_resource decorator
 @st.cache_resource
 def get_embedding_function():
     """Gets the embedding function and caches it across user sessions."""
     print("Loading embedding model... (This will only run once per session)")
-    return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    return HuggingFaceEmbeddings(model_name=model_name)
 
 def get_vector_db():
-    logging.info(f"DB_DIR: {DB_DIR}, Exists: {os.path.exists(DB_DIR)}")
-    """Loads or builds the Chroma vector database with telemetry disabled."""
-    # ADDED: Define settings to disable telemetry
-    client_settings = Settings(anonymized_telemetry=False)
-    
+    """Loads or builds the Chroma vector database using the modern pattern."""
     embedding_function = get_embedding_function()
-    
-    if not os.path.exists(DB_DIR) or not os.listdir(DB_DIR):
-        logging.info("Database not found or empty. Building now from all files in knowledge_base...")
-        
+    if os.path.exists(persist_directory) and os.listdir(persist_directory):
+        logging.info("✅ Loading existing vector database...")
+        vectordb = Chroma(
+            persist_directory=persist_directory,
+            embedding_function=embedding_function,
+            collection_name=collection_name,
+        )
+    else:
+        logging.info("🚀 Creating new vector database...")
         loader = DirectoryLoader(
             KNOWLEDGE_BASE_DIR,
             glob="**/*.md",
@@ -51,27 +53,22 @@ def get_vector_db():
         )
         documents = loader.load()
         logging.info(f"Loaded {len(documents)} Markdown documents from '{KNOWLEDGE_BASE_DIR}'.")
-
         if not documents:
             raise FileNotFoundError(
                 f"No Markdown (.md) documents found in the '{KNOWLEDGE_BASE_DIR}' directory. "
                 "Please add at least one .md file to build the knowledge base."
             )
-        
-        # Split documents into smaller chunks for focused retrieval
         from langchain_text_splitters import RecursiveCharacterTextSplitter
         splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
-        split_docs = splitter.split_documents(documents)
-        
-        # Build the DB from split_docs
-        db = Chroma.from_documents(split_docs, embedding_function, persist_directory=DB_DIR, client_settings=client_settings)
-        logging.info("Vector database setup complete.")
-    else:
-        logging.info("Loading existing vector database.")
-        # ADDED: Pass the settings when loading the DB
-        db = Chroma(persist_directory=DB_DIR, embedding_function=embedding_function, client_settings=client_settings)
-        
-    return db
+        splits = splitter.split_documents(documents)
+        vectordb = Chroma.from_documents(
+            documents=splits,
+            embedding=embedding_function,
+            persist_directory=persist_directory,
+            collection_name=collection_name,
+        )
+        logging.info("✅ Vector database created and persisted.")
+    return vectordb
 
 def query_rag(query_text: str, api_key: str):
     """

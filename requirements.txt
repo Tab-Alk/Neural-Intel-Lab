@@ -1,12 +1,15 @@
 # requirements.txt
 
 # Core LLM/RAG tools from your original file
-langchain
-langchain-community
-langchain-huggingface
+langchain==0.2.5
+langchain-community==0.2.5
+langchain-huggingface==0.0.3
+langchain-text-splitters==0.2.1
 langchain-groq
 
 # Vector store + Embeddings
+chromadb==0.5.3
+sentence-transformers==2.7.0
 chromadb
 sentence-transformers
 
@@ -21,7 +24,7 @@ scikit-learn
 numpy<2.0.0
 
 # If deploying to Streamlit Cloud or other environments with old sqlite3, uncomment the next line:
-pysqlite3-binary
+
 # (removed for Docker compatibility)
 # Pin protobuf to a stable version to prevent C++ extension errors
 protobuf==3.20.3
