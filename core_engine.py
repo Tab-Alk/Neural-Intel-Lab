@@ -32,6 +32,7 @@ def get_embedding_function():
     return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 def get_vector_db():
+    print(f"DB_DIR: {DB_DIR}, Exists: {os.path.exists(DB_DIR)}")
     """Loads or builds the Chroma vector database with telemetry disabled."""
     # ADDED: Define settings to disable telemetry
     client_settings = Settings(anonymized_telemetry=False)
