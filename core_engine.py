@@ -1,12 +1,21 @@
 # core_engine.py (Final Verified Version with Caching & Telemetry Fixes)
 
-# Conditional patch for pysqlite3
-try:
-    import pysqlite3
-    import sys
-    sys.modules["sqlite3"] = pysqlite3
-except ImportError:
-    pass  # fallback to system sqlite3 if pysqlite3 is not available
+# Force using pysqlite3-binary for SQLite compatibility
+# This must be done before any other imports that might use sqlite3
+import sys
+import pysqlite3
+
+# Replace the default sqlite3 with pysqlite3
+sys.modules["sqlite3"] = pysqlite3
+# Ensure the sqlite3 module is using our pysqlite3 version
+import sqlite3
+# Verify SQLite version
+if sqlite3.sqlite_version_info < (3, 35, 0):
+    raise RuntimeError(
+        f"SQLite version {sqlite3.sqlite_version} is not supported. "
+        "Please ensure pysqlite3-binary is installed and the correct "
+        "SQLite version (>=3.35.0) is being used."
+    )
 
 import os
 import logging

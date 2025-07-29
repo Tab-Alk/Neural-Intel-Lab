@@ -1,4 +1,5 @@
 # Core Dependencies
+pysqlite3-binary>=0.5.0  # Required for ChromaDB SQLite compatibility
 langchain-core>=0.1.0,<0.2.0
 langchain-community>=0.0.20
 langchain-huggingface>=0.0.3
