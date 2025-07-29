@@ -1,4 +1,5 @@
 import streamlit as st
+import logging
 from core_engine import (
     query_rag,
     generate_related_questions,
@@ -244,6 +245,24 @@ def handle_query(query: str, from_starter: bool = False):
 
 # ───────────────────────────────  UI builders (REVISED)  ────────────────────────────────
 
+def set_feedback():
+    """
+    Callback function for feedback buttons.
+    Updates the session state to indicate feedback has been given.
+    """
+    # Get the button that was clicked
+    clicked_button = st.session_state.get("feedback_yes") or st.session_state.get("feedback_no")
+    
+    if clicked_button is not None:
+        # Update the feedback in session state
+        st.session_state.feedback_given = True
+        
+        # You can add additional logic here to log the feedback
+        # For example, you might want to log whether the feedback was positive or negative
+        feedback_type = "positive" if st.session_state.get("feedback_yes") else "negative"
+        logging.info(f"User provided {feedback_type} feedback for the response.")
+
+
 def render_header() -> None:
     """Layered sidebar introduction."""
     with st.sidebar:
@@ -358,8 +377,7 @@ def render_response_area() -> None:
     st.markdown("---")
 
     # ------------- Feedback logic -------------
-    def set_feedback():
-        st.session_state.feedback_given = True
+
 
     if st.session_state.feedback_given:
         st.success("Thank you for your feedback!")

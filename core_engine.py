@@ -27,7 +27,6 @@ collection_name = "my_knowledge_base"
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
 KNOWLEDGE_BASE_DIR = 'knowledge_base'
 
-# MODIFIED: Added the @st.cache_resource decorator
 @st.cache_resource
 def get_embedding_function():
     """Gets the embedding function and caches it across user sessions."""
@@ -35,40 +34,95 @@ def get_embedding_function():
     return HuggingFaceEmbeddings(model_name=model_name)
 
 def get_vector_db():
-    """Loads or builds the Chroma vector database using the modern pattern."""
+    """
+    Loads or builds the Chroma vector database using the new Chroma client pattern.
+    
+    Returns:
+        Chroma: Initialized Chroma vector database instance.
+    """
+    import chromadb
+    from chromadb.config import Settings
+    
+    # Initialize embedding function
     embedding_function = get_embedding_function()
-    if os.path.exists(persist_directory) and os.listdir(persist_directory):
-        logging.info("✅ Loading existing vector database...")
-        vectordb = Chroma(
-            persist_directory=persist_directory,
-            embedding_function=embedding_function,
-            collection_name=collection_name,
-        )
-    else:
-        logging.info("🚀 Creating new vector database...")
+    
+    try:
+        # Create directory if it doesn't exist
+        os.makedirs(persist_directory, exist_ok=True)
+        
+        # Initialize Chroma client with the new PersistentClient
+        client = chromadb.PersistentClient(path=persist_directory)
+        
+        # Check if the collection exists
+        try:
+            collection_list = client.list_collections()
+            collection_exists = any(collection.name == collection_name for collection in collection_list)
+            
+            if collection_exists:
+                logging.info(f"✅ Found existing collection: {collection_name}")
+                # Create LangChain Chroma instance with the existing collection
+                vectordb = Chroma(
+                    client=client,
+                    collection_name=collection_name,
+                    embedding_function=embedding_function,
+                )
+                # Test the connection
+                _ = vectordb._collection.count()
+                logging.info("✅ Successfully loaded existing vector database.")
+                return vectordb
+                
+        except Exception as e:
+            logging.warning(f"⚠️ Could not access existing collection: {str(e)}")
+            # If we can't access the collection, we'll create a new one
+            pass
+        
+        # If we get here, we need to create a new collection
+        logging.info(f"📂 Loading documents from '{KNOWLEDGE_BASE_DIR}'...")
         loader = DirectoryLoader(
             KNOWLEDGE_BASE_DIR,
             glob="**/*.md",
             loader_cls=UnstructuredMarkdownLoader
         )
         documents = loader.load()
-        logging.info(f"Loaded {len(documents)} Markdown documents from '{KNOWLEDGE_BASE_DIR}'.")
+        
         if not documents:
             raise FileNotFoundError(
-                f"No Markdown (.md) documents found in the '{KNOWLEDGE_BASE_DIR}' directory. "
+                f"❌ No Markdown (.md) documents found in the '{KNOWLEDGE_BASE_DIR}' directory. "
                 "Please add at least one .md file to build the knowledge base."
             )
+            
+        logging.info(f"📄 Loaded {len(documents)} Markdown documents.")
+        
+        # Split documents into chunks
         from langchain_text_splitters import RecursiveCharacterTextSplitter
-        splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=800,
+            chunk_overlap=100,
+            length_function=len,
+            add_start_index=True,
+        )
         splits = splitter.split_documents(documents)
+        logging.info(f"✂️  Split into {len(splits)} chunks.")
+        
+        # Create new ChromaDB with the new client pattern
         vectordb = Chroma.from_documents(
             documents=splits,
             embedding=embedding_function,
-            persist_directory=persist_directory,
+            client=client,
             collection_name=collection_name,
+            persist_directory=persist_directory,
         )
-        logging.info("✅ Vector database created and persisted.")
-    return vectordb
+        
+        logging.info("✅ Vector database created and persisted successfully.")
+        return vectordb
+        
+    except Exception as e:
+        logging.error(f"❌ Error initializing vector database: {str(e)}")
+        # Clean up if something went wrong
+        if os.path.exists(persist_directory):
+            import shutil
+            shutil.rmtree(persist_directory, ignore_errors=True)
+        raise
 
 def query_rag(query_text: str, api_key: str):
     """

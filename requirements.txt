@@ -1,32 +1,28 @@
-# requirements.txt
+# Core Dependencies
+langchain-core>=0.1.0,<0.2.0
+langchain-community>=0.0.20
+langchain-huggingface>=0.0.3
+langchain-text-splitters>=0.0.1
+langchain-groq>=0.1.0
 
-# Core LLM/RAG tools from your original file
-langchain==0.2.5
-langchain-community==0.2.5
-langchain-huggingface==0.0.3
-langchain-text-splitters==0.2.1
-langchain-groq
+# Vector Store & Embeddings
+chromadb>=0.4.22
+sentence-transformers>=2.2.2
 
-# Vector store + Embeddings
-chromadb==0.5.3
-sentence-transformers==2.7.0
-chromadb
-sentence-transformers
+# Streamlit
+streamlit>=1.32.0
 
-# Streamlit frontend
-streamlit
-
-# Utility & Logic
-# jq is a dependency for the JSONLoader
-jq
-python-dotenv
-scikit-learn
-numpy<2.0.0
-
-# If deploying to Streamlit Cloud or other environments with old sqlite3, uncomment the next line:
-
-# (removed for Docker compatibility)
-# Pin protobuf to a stable version to prevent C++ extension errors
-protobuf==3.20.3
+# Utilities
+python-dotenv>=1.0.0
+scikit-learn>=1.0.0
+numpy>=1.24.0,<2.0.0
+pypdf>=3.0.0
 unstructured>=0.10.12
-markdown
+markdown>=3.0.0
+
+# Build Dependencies
+setuptools>=65.5.0
+wheel>=0.40.0
+
+# Performance
+protobuf>=3.20.3,<4.0.0
